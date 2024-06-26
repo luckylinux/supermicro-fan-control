@@ -9,13 +9,17 @@ if [[ ! -v toolpath ]]; then scriptpath=$(cd "$( dirname "${BASH_SOURCE[0]}" )" 
 DEBUG_MODE="yes"
 
 # Run Setup
-./setup.sh
+source ${toolpath}/setup.sh
 
-# Stop Systemd Service
-systemctl stop supermicro-fan-control.service
+# If NOT in Manual Debug Mode
+if [[ "${DEBUG_MODE}" != "yes" ]]
+    then
+    # Stop Systemd Service
+    systemctl stop supermicro-fan-control.service
 
-# Status Systemd Service
-systemctl status supermicro-fan-control.service
+    # Status Systemd Service
+    systemctl status supermicro-fan-control.service
+fi
 
 # Run the Application Directly to Debug
 /opt/supermicro-fan-control/bin/supermicro-fan-control.py

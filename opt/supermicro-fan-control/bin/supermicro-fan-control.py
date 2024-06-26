@@ -12,6 +12,12 @@ import re
 import yaml
 from yaml.loader import SafeLoader
 
+# Python Pretty Print Module
+import pprint
+
+# Define Configuration Dictionary
+CONFIG = dict()
+
 # Set your desired temperature range and minimum fan speed
 MIN_TEMP = 20                        # [°C]
 MAX_TEMP = 25                        # [°C]
@@ -23,31 +29,37 @@ UPDATE_INTERVAL = 5                  # [s] How often Temperatures shall be check
 os.system("ipmitool raw 0x30 0x45 0x01 0x01")
 time.sleep(2)
 
+# Init
+def init():
+    # Allow Function to modify CONFIG Global Variable
+    global CONFIG
 
-# Read Config File
-def read_config(filepath = '/etc/supermicro-fan-control/settings.yaml'):
-   # Declare List
-   images = []
+    # Initialize CONFIG as a Dictionary
+    CONFIG = dict()
 
-   with open(filepath, 'r') as f:
-      # Open YAML File in Safe Mode
-      #data = yaml.safe_load(f)
-      data = list(yaml.load_all(f, Loader=SafeLoader))
+# Merge Configuration
+# If a Key is defined in both config_a and config_b, the Value of config_b will override the Value of config_a
+def merge_config(config_a , config_b):
 
-      # Print
-      print(data[0])
+    # Initialize config as config_a
+    config = config_a.copy()
 
-      # Length of list
-      length = len(data)
+    if config is not None:
+        # Iterate over Dictionary
+        for key, value in config.items():
+            # Print Key
+            #print(key)
 
-      # Iterate over list
-      for l in range(length):
-         # Get Data of the current Iteration
-         currentdata = data[l]
+            # If the key also exists in config_b, then replace value
+            if key in config_b:
+                config[key] = config_b[key]
 
-         # Iterate over currentdata
-         for item in currentdata:
-            print(item)
+            # Get Data of the current Iteration
+            #currentdata = data[l]
+
+            # Iterate over currentdata
+            #for item in currentdata:
+            #print(item)
 
             #currentimages = currentdata[item]["images"]
             #for im in currentimages:
@@ -59,14 +71,69 @@ def read_config(filepath = '/etc/supermicro-fan-control/settings.yaml'):
             #
             #   # Append to the list
             #   images.append(image)
+        else:
+        #    # Simply use config_b
+            config = config_b.copy()
+    
+    # Return Result
+    return config
 
-   # Return Result
-   return images
+# Read Configuration File
+def read_config(filepath = '/etc/supermicro-fan-control/settings.yaml'):
+    # Allow Function to modify CONFIG Global Variable
+    global CONFIG
 
+    #pprint.pprint(CONFIG)
 
-# Try to read YAML Configuration
-read_config("/etc/supermicro-fan-control/settings.yaml.default")
-read_config("/etc/supermicro-fan-control/settings.yaml")
+    if os.path.exists(filepath):
+        # Echo
+        print(f"[INFO] Loading File {filepath}")
+
+        with open(filepath, 'r') as f:
+            # Open YAML File in Safe Mode
+            list_data = list(yaml.load_all(f, Loader=SafeLoader))
+
+            if list_data is not None and len(list_data) > 0:
+                # Unpack the List
+                data = list_data[0]
+
+                # Print
+                #pprint.pprint(data)
+
+                # Merge Config
+                CONFIG = merge_config(CONFIG , data)
+            else:
+                # Echo
+                print(f"[WARNING] File {filepath} is empty")
+    else:
+        # Echo
+        print(f"[WARNING] File {filepath} does NOT exist")
+
+# Init
+init()
+
+# Read General Configuration
+read_config(f"/etc/supermicro-fan-control/settings.yaml.default")
+read_config(f"/etc/supermicro-fan-control/settings.yaml")
+
+# Print Configuration
+#pprint.pprint(CONFIG)
+import json
+print(json.dumps(CONFIG, indent=4, sort_keys=True))
+
+# Extract Configuration Variables
+general = CONFIG['general']
+motherboard = general['motherboard']
+
+# Read IPMI Configuration
+read_config(f"/etc/supermicro-fan-control/ipmi.d/default.yaml")
+read_config(f"/etc/supermicro-fan-control/ipmi.d/{motherboard}.yaml")
+
+# Print Configuration
+#pprint.pprint(CONFIG)
+import json
+print(json.dumps(CONFIG, indent=4, sort_keys=True))
+
 
 # Stop here for now
 sys.exit(0)

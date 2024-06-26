@@ -14,8 +14,15 @@ python3 -m venv /opt/supermicro-fan-control/venv
 # Activate venv
 source /opt/supermicro-fan-control/venv/bin/activate
 
-# Install Requirements
-pip install -r requirements.txt
+# If NOT in Manual Debug Mode
+if [[ "${DEBUG_MODE}" == "yes" ]]
+then
+    # Install Requirements (Suppress Echo)
+    pip install -q -r requirements.txt
+else
+    # Install Requirements (Echo)
+    pip install -r requirements.txt
+fi
 
 # Install App
 cp -r opt/supermicro-fan-control/* /opt/supermicro-fan-control/
@@ -29,12 +36,12 @@ cp -r etc/supermicro-fan-control/* /etc/supermicro-fan-control/
 # Install Systemd Service
 cp etc/systemd/system/supermicro-fan-control.service /etc/systemd/system/supermicro-fan-control.service
 
-# If NOT in Manual Debug Mode
-if [[ "${DEBUG_MODE}" == "yes" ]]
-then
-    # Reload Systemd Daemon
-    systemctl daemon-reload
+# Reload Systemd Daemon (at least to suppress warnings)
+systemctl daemon-reload
 
+# If NOT in Manual Debug Mode
+if [[ "${DEBUG_MODE}" != "yes" ]]
+then
     # Enable Service
     systemctl enable supermicro-fan-control.service
 
