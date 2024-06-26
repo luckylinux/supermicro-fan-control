@@ -15,13 +15,19 @@ from yaml.loader import SafeLoader
 # Python Pretty Print Module
 import pprint
 
+# Python json Module
+import json
+
+# Python DiskInfo Module
+from diskinfo import Disk, DiskInfo
+
 # Define Configuration Dictionary
 CONFIG = dict()
 
 # Set your desired temperature range and minimum fan speed
 MIN_TEMP = 30                        # [°C]
 MAX_TEMP = 40                        # [°C]
-MIN_FAN_SPEED = 20                   # [%] Initial Fan Speed
+MIN_FAN_SPEED = 40                   # [%] Initial Fan Speed
 current_fan_speed = MIN_FAN_SPEED    # [%] Current Fan Speed
 UPDATE_INTERVAL = 5                  # [s] How often Temperatures shall be checked and Fan Speed updated accordingly
 
@@ -123,11 +129,20 @@ def read_config(filepath):
         # Echo
         print(f"[WARNING] File {filepath} does NOT exist")
 
+# Get the current HDD/SSD/NVME Temperature(s)
+def get_drives_temperatures():
+    di = DiskInfo()
+    disks = di.get_disk_list(sorting=True)
 
+    for d in disks:
+        id = d.get_byid_path()
+        temp = d.get_temperature()
 
+        if temp is not None:
+            print(f"Disk {id} -> Temperature: {temp}")
 
-# Get the current CPU temperature
-def get_cpu_temperature():
+# Get the current CPU Temperature(s)
+def get_cpu_temperatures():
     temp_output = subprocess.check_output("ipmitool sdr type temperature", shell=True).decode()
     cpu_temp_lines = [line for line in temp_output.split("\n") if "CPU" in line and "degrees" in line]
 
@@ -173,7 +188,7 @@ def set_fan_speed(speed):
 def loop():
     while True:
         # Get current CPU Temperatures
-        cpu_temp = get_cpu_temperature()
+        cpu_temp = get_cpu_temperatures()
 
         # Print current CPU Temperature to Console
         print(f"Current CPU Temperature: {cpu_temp}°C")
@@ -185,7 +200,7 @@ def loop():
         # ...
 
         # Get current HDD / SSD / NVME Temperatures
-        # ...
+        drives_temps = get_drives_temperatures()
 
         if cpu_temp > MAX_TEMP and current_fan_speed < 100:
             # Increase the fan speed by 10% to cool down the CPU
@@ -209,8 +224,7 @@ def configure():
 
     # Print Configuration
     #pprint.pprint(CONFIG)
-    import json
-    print(json.dumps(CONFIG, indent=4, sort_keys=True))
+    #print(json.dumps(CONFIG, indent=4, sort_keys=True))
 
     # Extract Configuration Variables
     general = CONFIG['general']
@@ -222,8 +236,7 @@ def configure():
 
     # Print Configuration
     #pprint.pprint(CONFIG)
-    import json
-    print(json.dumps(CONFIG, indent=4, sort_keys=True))
+    #print(json.dumps(CONFIG, indent=4, sort_keys=True))
 
     # IPMI tool command to set the fan control mode to manual (Full)
     fan_speed_full = CONFIG["ipmi"]["fan_modes"]["full"]["registers"]
