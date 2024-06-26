@@ -149,9 +149,6 @@ def set_fan_speed(speed):
     # Print the Fan Speed change to console
     print(f"Fan speed adjusted to {speed}% - {hex_speed}")
 
-# Set initial minimum fan speed
-set_fan_speed(MIN_FAN_SPEED)
-
 
 # Loop Method
 # Infinite Loop
@@ -224,6 +221,9 @@ if __name__ == "__main__":
 
     # Configure
     configure()
+
+    # Set initial minimum fan speed
+    set_fan_speed(MIN_FAN_SPEED)
 
     # Run Control Loop
     loop()
