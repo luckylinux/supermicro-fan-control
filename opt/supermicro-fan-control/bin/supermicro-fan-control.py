@@ -220,19 +220,32 @@ def loop():
         new_fan_speed_cpu = current_fan_speed
         new_fan_speed_drive = current_fan_speed
 
+
         # Regulate Fan Speed based on CPU Temperature
         if cpu_temp > CONFIG["cpu"]["max_temp"] and new_fan_speed_cpu < CONFIG["fan"]["max_speed"]:
+            # Echo
+            print(f"Increasing Fan Speed since CPU Temperature = {cpu_temp} is higher than the Maximum Setting = {CONFIG['cpu']['max_temp']}")
+
             # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the CPU
             new_fan_speed_cpu = min(new_fan_speed_cpu + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
         elif cpu_temp < CONFIG["cpu"]["min_temp"] and new_fan_speed_cpu > CONFIG["fan"]["min_speed"]:
+            # Echo
+            print(f"Decreasing Fan Speed since CPU Temperature = {cpu_temp} is lower than the Minimum Setting = {CONFIG['cpu']['min_temp']}")
+
             # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
             new_fan_speed_cpu = max(new_fan_speed_cpu - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
             
         # Regulate Fan Speed based on Drives Temperature
         if drives_temps_max > CONFIG["drive"]["max_temp"] and new_fan_speed_drive < CONFIG["fan"]["max_speed"]:
+            # Echo
+            print(f"Increasing Fan Speed since Drive Temperature = {drives_temps_max} is higher than the Maximum Setting = {CONFIG['drive']['max_temp']}")
+
             # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the Drives
             new_fan_speed_drive = min(new_fan_speed_drive + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
         elif drives_temps_max < CONFIG["drive"]["min_temp"] and new_fan_speed_drive > CONFIG["fan"]["min_speed"]:
+            # Echo
+            print(f"Decreasing Fan Speed since Drive Temperature = {drives_temps_max} is lower than the Minimum Setting = {CONFIG['drive']['min_temp']}")
+            
             # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
             new_fan_speed_drive = max(new_fan_speed_drive - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
 
