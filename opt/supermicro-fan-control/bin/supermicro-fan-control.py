@@ -315,7 +315,7 @@ if __name__ == "__main__":
     configure()
 
     # Set initial minimum fan speed
-    set_fan_speed(CONFIG["fan"]["min_speed"])
+    set_fan_speed(current_fan_speed)
 
     # Run Control Loop
     loop()
