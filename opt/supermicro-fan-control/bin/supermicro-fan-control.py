@@ -35,6 +35,21 @@ def init():
     # Initialize CONFIG as a Dictionary
     CONFIG = dict()
 
+# Filter Drive
+def filter_drive(path):
+    # Initialize String
+    drivepath = ""
+
+    # Only keep the element NOT containing "wwn"
+    for item in path:
+        if "wwn" in item:
+            pass
+        else:
+            drivepath = item
+
+    # Return Result
+    return drivepath
+
 # Merge Configuration
 # If a Key is defined in both config_a and config_b, the Value of config_b will override the Value of config_a
 def merge_config(config_a , config_b):
@@ -137,12 +152,13 @@ def get_drives_temperatures():
     # Loop over Disks
     for d in disks:
         id = d.get_byid_path()
+        filteredid = filter_drive(id)
         temp = d.get_temperature()
 
         # If it's a Physical Disk (i.e. it has a Valid Temperature)
         if temp is not None:
             # Echo
-            print(f"Disk {' , '.join(id)} -> Temperature: {temp}°C")
+            print(f"Disk {filteredid} -> Temperature: {temp}°C")
 
             # Add to Array
             temps.append(temp)
