@@ -105,40 +105,7 @@ def read_config(filepath = '/etc/supermicro-fan-control/settings.yaml'):
         # Echo
         print(f"[WARNING] File {filepath} does NOT exist")
 
-# Init
-init()
 
-# Read General Configuration
-read_config(f"/etc/supermicro-fan-control/settings.yaml.default")
-read_config(f"/etc/supermicro-fan-control/settings.yaml")
-
-# Print Configuration
-#pprint.pprint(CONFIG)
-import json
-print(json.dumps(CONFIG, indent=4, sort_keys=True))
-
-# Extract Configuration Variables
-general = CONFIG['general']
-motherboard = general['motherboard']
-
-# Read IPMI Configuration
-read_config(f"/etc/supermicro-fan-control/ipmi.d/default.yaml")
-read_config(f"/etc/supermicro-fan-control/ipmi.d/{motherboard}.yaml")
-
-# Print Configuration
-#pprint.pprint(CONFIG)
-import json
-print(json.dumps(CONFIG, indent=4, sort_keys=True))
-
-
-# IPMI tool command to set the fan control mode to manual (Full)
-fan_speed_full = CONFIG["ipmi"]["fan_modes"]["full"]["registers"]
-os.system(f"ipmitool raw {' '.join(fan_speed_full)}")
-time.sleep(2)
-
-
-# Stop here for now
-sys.exit(0)
 
 
 # Get the current CPU temperature
@@ -185,22 +152,78 @@ def set_fan_speed(speed):
 # Set initial minimum fan speed
 set_fan_speed(MIN_FAN_SPEED)
 
+
+# Loop Method
 # Infinite Loop
-while True:
-    # Get current CPU Temperature
-    cpu_temp = get_cpu_temperature()
+def loop():
+    while True:
+        # Get current CPU Temperatures
+        cpu_temp = get_cpu_temperature()
 
-    # Print current CPU Temperature to Console
-    print(f"Current CPU Temperature: {cpu_temp}°C")
+        # Print current CPU Temperature to Console
+        print(f"Current CPU Temperature: {cpu_temp}°C")
 
-    if cpu_temp > MAX_TEMP and current_fan_speed < 100:
-        # Increase the fan speed by 10% to cool down the CPU
-        new_fan_speed = min(current_fan_speed + 10, 100)
-        set_fan_speed(new_fan_speed)
-    elif cpu_temp < MIN_TEMP and current_fan_speed > MIN_FAN_SPEED:
-        # Decrease the fan speed by 1% if the temperature is below the minimum threshold
-        new_fan_speed = max(current_fan_speed - 1, MIN_FAN_SPEED)
-        set_fan_speed(new_fan_speed)
+        # Get current RAM Temperatures
+        # ...
 
-    # Wait UPDATE_INTERVAL seconds before checking the temperature again
-    time.sleep(UPDATE_INTERVAL)
+        # Get current Chipset Temperatures
+        # ...
+
+        # Get current HDD / SSD / NVME Temperatures
+        # ...
+
+        if cpu_temp > MAX_TEMP and current_fan_speed < 100:
+            # Increase the fan speed by 10% to cool down the CPU
+            new_fan_speed = min(current_fan_speed + 10, 100)
+            set_fan_speed(new_fan_speed)
+        elif cpu_temp < MIN_TEMP and current_fan_speed > MIN_FAN_SPEED:
+            # Decrease the fan speed by 1% if the temperature is below the minimum threshold
+            new_fan_speed = max(current_fan_speed - 1, MIN_FAN_SPEED)
+            set_fan_speed(new_fan_speed)
+
+        # Wait UPDATE_INTERVAL seconds before checking the temperature again
+        time.sleep(UPDATE_INTERVAL)
+
+
+
+def configure():
+    # Read General Configuration
+    read_config(f"/etc/supermicro-fan-control/settings.yaml.default")
+    read_config(f"/etc/supermicro-fan-control/settings.yaml")
+
+    # Print Configuration
+    #pprint.pprint(CONFIG)
+    import json
+    print(json.dumps(CONFIG, indent=4, sort_keys=True))
+
+    # Extract Configuration Variables
+    general = CONFIG['general']
+    motherboard = general['motherboard']
+
+    # Read IPMI Configuration
+    read_config(f"/etc/supermicro-fan-control/ipmi.d/default.yaml")
+    read_config(f"/etc/supermicro-fan-control/ipmi.d/{motherboard}.yaml")
+
+    # Print Configuration
+    #pprint.pprint(CONFIG)
+    import json
+    print(json.dumps(CONFIG, indent=4, sort_keys=True))
+
+    # IPMI tool command to set the fan control mode to manual (Full)
+    fan_speed_full = CONFIG["ipmi"]["fan_modes"]["full"]["registers"]
+    os.system(f"ipmitool raw {' '.join(fan_speed_full)}")
+    time.sleep(2)
+
+    # Stop here for now
+    #sys.exit(0)
+
+# Main Method
+if __name__ == "__main__":
+    # Initialize
+    init()
+
+    # Configure
+    configure()
+
+    # Run Control Loop
+    loop()
