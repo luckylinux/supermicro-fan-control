@@ -269,7 +269,8 @@ def loop():
         new_fan_speed = max([new_fan_speed_cpu , new_fan_speed_drive])
 
         # Set Fan Speed
-        set_fan_speed(new_fan_speed)
+        if new_fan_speed != current_fan_speed:
+            set_fan_speed(new_fan_speed)
 
         # Wait UPDATE_INTERVAL seconds before checking the temperature again
         #pprint.pprint(CONFIG)
