@@ -27,3 +27,8 @@ Run the Setup:
 Project based on the work of [Benjamin Bryan](https://b3n.org).
 
 See his Blog Post for the [Original Code](https://b3n.org/supermicro-fan-speed-script/).
+
+# References
+- https://b3n.org/supermicro-fan-speed-script/
+- https://forums.servethehome.com/index.php?threads/supermicro-x9-x10-x11-fan-speed-control.10059/page-10
+- https://forums.servethehome.com/index.php?resources/supermicro-x9-x10-x11-fan-speed-control.20/

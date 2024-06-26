@@ -1,5 +1,5 @@
 general:
-    motherboard: "X10SLM-F"
+    motherboard: "default"
     update_interval: 5
 
 #cpu:

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Determine toolpath if not set already
+relativepath="./" # Define relative path to go from this script to the root level of the tool
+if [[ ! -v toolpath ]]; then scriptpath=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd ); toolpath=$(realpath --canonicalize-missing ${scriptpath}/${relativepath}); fi
+
 # Create Folders
 mkdir -p /etc/supermicro-fan-control
 mkdir -p /opt/supermicro-fan-control
@@ -25,14 +29,18 @@ cp -r etc/supermicro-fan-control/* /etc/supermicro-fan-control/
 # Install Systemd Service
 cp etc/systemd/system/supermicro-fan-control.service /etc/systemd/system/supermicro-fan-control.service
 
-# Reload Systemd Daemon
-systemctl daemon-reload
+# If NOT in Manual Debug Mode
+if [[ "${DEBUG_MODE}" == "yes" ]]
+then
+    # Reload Systemd Daemon
+    systemctl daemon-reload
 
-# Enable Service
-systemctl enable supermicro-fan-control.service
+    # Enable Service
+    systemctl enable supermicro-fan-control.service
 
-# Restart Service
-systemctl restart supermicro-fan-control.service
+    # Restart Service
+    systemctl restart supermicro-fan-control.service
 
-# Show Status of Service in case the are any Errors
-systemctl status supermicro-fan-control.service
+    # Show Status of Service in case the are any Errors
+    systemctl status supermicro-fan-control.service
+fi
