@@ -270,7 +270,14 @@ def loop():
 
         # Set Fan Speed
         if new_fan_speed != current_fan_speed:
+            # Echo
+            print("[INFO] Updating Fan Speed")
+
+            # Update
             set_fan_speed(new_fan_speed)
+        else:
+            # Echo
+            print("[DEBUG] No Fan Speed Update required")
 
         # Wait UPDATE_INTERVAL seconds before checking the temperature again
         #pprint.pprint(CONFIG)
