@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/opt/supermicro-fan-control/venv/bin/python3
 import os
 import subprocess
 import time

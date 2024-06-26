@@ -7,6 +7,22 @@ Supermicro Fan Control
 # Features
 
 
+# Installation
+Clone the Repository:
+```
+git clone https://github.com/luckylinux/supermicro-fan-control.git
+```
+
+Change Folder to the Project that was just cloned:
+```
+cd supermicro-fan-control
+```
+
+Run the Setup:
+```
+./setup.sh
+```
+
 # Credits
 Project based on the work of [Benjamin Bryan](https://b3n.org).
 
