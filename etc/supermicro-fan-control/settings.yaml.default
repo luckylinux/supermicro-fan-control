@@ -4,13 +4,13 @@ general:
 
 cpu:
     max_temp: 60
-    min_temp: 20
+    min_temp: 50
     alarm_temp: 80
     shutdown_temp: 95
 
 drive:
-    max_temp: 35
-    min_temp: 10
+    max_temp: 37
+    min_temp: 32
     alarm_temp: 50
     shutdown_temp: 55
 
