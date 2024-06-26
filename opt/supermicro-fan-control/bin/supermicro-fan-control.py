@@ -133,7 +133,7 @@ def set_fan_speed(speed):
 
     # Get Fan Zones Settings
     fan_zone_0 = CONFIG["ipmi"]["fan_zones"][0]["registers"]
-    fan_zone_1 = CONFIG["ipmi"]["fan_zones"][2]["registers"]
+    fan_zone_1 = CONFIG["ipmi"]["fan_zones"][1]["registers"]
 
     # Set the Fan Speed for Zone 0
     os.system(f"ipmitool raw {' '.join(fan_zone_0)} 0x{hex_speed}")
