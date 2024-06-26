@@ -250,30 +250,51 @@ def loop():
         # Regulate Fan Speed based on CPU Temperature
         if cpu_temp > CONFIG["cpu"]["max_temp"] and new_fan_speed_cpu < CONFIG["fan"]["max_speed"]:
             # Echo
-            log(f"Increasing Fan Speed since CPU Temperature = {cpu_temp} is higher than the Maximum Setting = {CONFIG['cpu']['max_temp']}" , level="DEBUG")
+            log(f"Increasing Fan Speed since CPU Temperature = {cpu_temp}°C is higher than the Maximum Setting = {CONFIG['cpu']['max_temp']}°C" , level="DEBUG")
 
             # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the CPU
             new_fan_speed_cpu = min(new_fan_speed_cpu + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
+
+            # Echo
+            log(f"New Fan Speed based on CPU Temperature = {new_fan_speed_cpu}%" , level="DEBUG")
+
         elif cpu_temp < CONFIG["cpu"]["min_temp"] and new_fan_speed_cpu > CONFIG["fan"]["min_speed"]:
             # Echo
-            log(f"Decreasing Fan Speed since CPU Temperature = {cpu_temp} is lower than the Minimum Setting = {CONFIG['cpu']['min_temp']}" , level="DEBUG")
+            log(f"Decreasing Fan Speed since CPU Temperature = {cpu_temp}°C is lower than the Minimum Setting = {CONFIG['cpu']['min_temp']}°C" , level="DEBUG")
 
             # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
             new_fan_speed_cpu = max(new_fan_speed_cpu - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
-            
+
+            # Echo
+            log(f"New Fan Speed based on CPU Temperature = {new_fan_speed_cpu}%" , level="DEBUG")
+        else:
+            # Echo
+            log(f"Skipping Fan Speed Update since CPU Temperature = {cpu_temp}°C is within Histeresis Range = [{CONFIG['cpu']['min_temp']}°C ... {CONFIG['cpu']['max_temp']}°C]" , level="DEBUG")
+
+
         # Regulate Fan Speed based on Drives Temperature
         if drives_temps_max > CONFIG["drive"]["max_temp"] and new_fan_speed_drive < CONFIG["fan"]["max_speed"]:
             # Echo
-            log(f"Increasing Fan Speed since Drive Temperature = {drives_temps_max} is higher than the Maximum Setting = {CONFIG['drive']['max_temp']}" , level="DEBUG")
+            log(f"Increasing Fan Speed since Drive Temperature = {drives_temps_max}°C is higher than the Maximum Setting = {CONFIG['drive']['max_temp']}°C" , level="DEBUG")
 
             # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the Drives
             new_fan_speed_drive = min(new_fan_speed_drive + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
+
+            # Echo
+            log(f"New Fan Speed based on Drive Temperature = {new_fan_speed_drive}%" , level="DEBUG")
         elif drives_temps_max < CONFIG["drive"]["min_temp"] and new_fan_speed_drive > CONFIG["fan"]["min_speed"]:
             # Echo
-            log(f"Decreasing Fan Speed since Drive Temperature = {drives_temps_max} is lower than the Minimum Setting = {CONFIG['drive']['min_temp']}" , level="DEBUG")
+            log(f"Decreasing Fan Speed since Drive Temperature = {drives_temps_max}°C is lower than the Minimum Setting = {CONFIG['drive']['min_temp']}°C" , level="DEBUG")
             
             # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
             new_fan_speed_drive = max(new_fan_speed_drive - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
+
+            # Echo
+            log(f"New Fan Speed based on Drive Temperature = {new_fan_speed_drive}%" , level="DEBUG")
+        else:
+            # Echo
+            log(f"Skipping Fan Speed Update since Drive Temperature = {drives_temps_max}°C is within Histeresis Range = [{CONFIG['drive']['min_temp']}°C ... {CONFIG['drive']['max_temp']}°C]" , level="DEBUG")
+
 
         # Get worst Case
         new_fan_speed = max([new_fan_speed_cpu , new_fan_speed_drive])
@@ -281,13 +302,13 @@ def loop():
         # Set Fan Speed
         if new_fan_speed != current_fan_speed:
             # Echo
-            log("Updating Fan Speed" , level="INFO")
+            log(f"Updating Fan Speed from {current_fan_speed}% to {new_fan_speed}%" , level="INFO")
 
             # Update
             set_fan_speed(new_fan_speed)
         else:
             # Echo
-            log("No Fan Speed Update required" , level="DEBUG")
+            log(f"No Fan Speed Update required. Keeping Fan Speed to {current_fan_speed}%" , level="DEBUG")
 
         # Wait UPDATE_INTERVAL seconds before checking the temperature again
         #pprint.pprint(CONFIG)
