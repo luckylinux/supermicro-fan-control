@@ -19,7 +19,7 @@ import pprint
 import json
 
 # Python DiskInfo Module
-from diskinfo import Disk, DiskInfo
+from diskinfo import Disk, DiskInfo, DiskType
 
 # Define Configuration Dictionary
 CONFIG = dict()
@@ -151,7 +151,7 @@ def read_config(filepath):
         log(f"File {filepath} does NOT exist" , level="WARNING")
 
 # Get the current HDD/SSD/NVME Temperature(s)
-def get_drives_temperatures():
+def get_drives_temperatures(filterType = None):
     # Initialize Array
     temps = []
 
@@ -164,14 +164,17 @@ def get_drives_temperatures():
         id = d.get_byid_path()
         filteredid = filter_drive(id)
         temp = d.get_temperature()
+        driveType = d.get_type()
+        driveTypeStr = d.get_type_str()
 
         # If it's a Physical Disk (i.e. it has a Valid Temperature)
         if temp is not None:
-            # Echo
-            log(f"Disk {filteredid} -> Temperature: {temp}°C" , level="INFO")
+            if driveType == filterType or filterType is None:
+                # Echo
+                log(f"{driveTypeStr} Drive {filteredid} has Temperature = {temp}°C" , level="INFO")
 
-            # Add to Array
-            temps.append(temp)
+                # Add to Array
+                temps.append(temp)
 
     # Return Result
     return temps
@@ -197,7 +200,7 @@ def set_fan_speed(speed):
     # Convert the speed percentage to a hex value
     hex_speed = format(speed * 255 // 100, "02x")
 
-    log(f"Hex Speed: {hex_speed}" , "INFO")
+    log(f"Hex Speed: 0x{hex_speed}%" , "INFO")
 
     # Get Fan Zones Settings
     fan_zone_0 = CONFIG["ipmi"]["fan_zones"][0]["registers"]
@@ -218,6 +221,46 @@ def set_fan_speed(speed):
     log(f"Fan speed adjusted to {speed}% - Hex: 0x{hex_speed}" , level="INFO")
 
 
+# Run Temperature Controller
+def run_temperature_controller(label , id , current_temp , current_fan_speed):
+    # Initialize Variable
+    new_fan_speed = current_fan_speed
+
+    if current_temp > CONFIG[id]["max_temp"] and new_fan_speed < CONFIG["fan"]["max_speed"]:
+        # Echo
+        log(f"Increasing Fan Speed since {label} Controller Temperature = {current_temp}°C is higher than the Maximum Setting = {CONFIG[id]['max_temp']}°C" , level="DEBUG")
+
+        # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the <id>
+        new_fan_speed = min(new_fan_speed + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
+
+        # Echo
+        log(f"New Fan Speed based on {label} Controller Temperature = {new_fan_speed}%" , level="DEBUG")
+
+    elif current_temp < CONFIG[id]["min_temp"] and new_fan_speed > CONFIG["fan"]["min_speed"]:
+        # Echo
+        log(f"Decreasing Fan Speed since {label} Temperature = {current_temp}°C is lower than the Minimum Setting = {CONFIG[id]['min_temp']}°C" , level="DEBUG")
+
+        # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
+        new_fan_speed = max(new_fan_speed - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
+
+        # Echo
+        log(f"New Fan Speed based on {label} Controller Temperature = {new_fan_speed}%" , level="DEBUG")
+    else:
+        if new_fan_speed >= CONFIG["fan"]["max_speed"]:
+            # Echo
+            log(f"Skipping Fan Speed Update for {label} Controller since Current Fan Speed {current_fan_speed} is already >= {CONFIG['fan']['max_speed']}°C" , level="DEBUG")
+
+        elif new_fan_speed <= CONFIG["fan"]["min_speed"]:
+            # Echo
+            log(f"Skipping Fan Speed Update for {label} Controller since Current Fan Speed {current_fan_speed} is already <= {CONFIG['fan']['min_speed']}°C" , level="DEBUG")
+
+        elif current_temp >= CONFIG[id]['min_temp'] and current_temp <= CONFIG[id]['max_temp']:
+            # Echo
+            log(f"Skipping Fan Speed Update for {label} Controller since {label} Temperature = {current_temp}°C is within Histeresis Range = [{CONFIG[id]['min_temp']}°C ... {CONFIG[id]['max_temp']}°C]" , level="DEBUG")
+
+    # Return Result
+    return new_fan_speed
+
 # Loop Method
 # Infinite Loop
 def loop():
@@ -237,67 +280,64 @@ def loop():
         # Get current HBA Temperatures
         # ...
 
-        # Get current HDD / SSD / NVME Temperatures
-        drives_temps_all = get_drives_temperatures()
-        drives_temps_max = max(drives_temps_all)
-        log(f"Maximum Drive Temperature: {drives_temps_max}°C" , level="INFO")
+        # Get current ALL Drive Temperatures
+        #drives_temps_all = get_drives_temperatures()
+        #drives_temps_max = max(drives_temps_all)
+        #log(f"Maximum Drive Temperature: {drives_temps_max}°C" , level="INFO")
+
+        # Get current HDD Temperatures
+        hdd_temps_all = get_drives_temperatures(filterType = DiskType.HDD)
+        if hdd_temps_all is not None and len(hdd_temps_all) > 0:
+            hdd_temps_max = max(hdd_temps_all)
+            log(f"Maximum HDD Temperature: {hdd_temps_max}°C" , level="INFO")
+        else:
+            hdd_temps_max = 0
+            log(f"No HDD Detected" , level="INFO")
+
+        # Get current SSD Temperatures
+        ssd_temps_all = get_drives_temperatures(filterType = DiskType.SSD)
+        if ssd_temps_all is not None and len(ssd_temps_all) > 0:
+            ssd_temps_max = max(ssd_temps_all)
+            log(f"Maximum SSD Temperature: {ssd_temps_max}°C" , level="INFO")
+        else:
+            ssd_temps_max = 0
+            log(f"No SSD Detected" , level="INFO")
+
+        # Get current NVME Temperatures
+        nvme_temps_all = get_drives_temperatures(filterType = DiskType.NVME)
+        if nvme_temps_all is not None and len(nvme_temps_all) > 0:
+            nvme_temps_max = max(nvme_temps_all)
+            log(f"Maximum NVME Temperature: {nvme_temps_max}°C" , level="INFO")
+        else:
+            nvme_temps_max = 0
+            log(f"No NVME Detected" , level="INFO")   
 
         # Initialize new_fan_speed = current_fan_speed
         new_fan_speed_cpu = current_fan_speed
-        new_fan_speed_drive = current_fan_speed
-
+        #new_fan_speed_drive = current_fan_speed
+        new_fan_speed_hdd = current_fan_speed
+        new_fan_speed_ssd = current_fan_speed
+        new_fan_speed_nvme = current_fan_speed
 
         # Regulate Fan Speed based on CPU Temperature
-        if cpu_temp > CONFIG["cpu"]["max_temp"] and new_fan_speed_cpu < CONFIG["fan"]["max_speed"]:
-            # Echo
-            log(f"Increasing Fan Speed since CPU Temperature = {cpu_temp}°C is higher than the Maximum Setting = {CONFIG['cpu']['max_temp']}°C" , level="DEBUG")
-
-            # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the CPU
-            new_fan_speed_cpu = min(new_fan_speed_cpu + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
-
-            # Echo
-            log(f"New Fan Speed based on CPU Temperature = {new_fan_speed_cpu}%" , level="DEBUG")
-
-        elif cpu_temp < CONFIG["cpu"]["min_temp"] and new_fan_speed_cpu > CONFIG["fan"]["min_speed"]:
-            # Echo
-            log(f"Decreasing Fan Speed since CPU Temperature = {cpu_temp}°C is lower than the Minimum Setting = {CONFIG['cpu']['min_temp']}°C" , level="DEBUG")
-
-            # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
-            new_fan_speed_cpu = max(new_fan_speed_cpu - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
-
-            # Echo
-            log(f"New Fan Speed based on CPU Temperature = {new_fan_speed_cpu}%" , level="DEBUG")
-        else:
-            # Echo
-            log(f"Skipping Fan Speed Update since CPU Temperature = {cpu_temp}°C is within Histeresis Range = [{CONFIG['cpu']['min_temp']}°C ... {CONFIG['cpu']['max_temp']}°C]" , level="DEBUG")
-
+        new_fan_speed_cpu = run_temperature_controller(label = "CPU" , id = "cpu" , current_temp = cpu_temp , current_fan_speed = new_fan_speed_cpu)
 
         # Regulate Fan Speed based on Drives Temperature
-        if drives_temps_max > CONFIG["drive"]["max_temp"] and new_fan_speed_drive < CONFIG["fan"]["max_speed"]:
-            # Echo
-            log(f"Increasing Fan Speed since Drive Temperature = {drives_temps_max}°C is higher than the Maximum Setting = {CONFIG['drive']['max_temp']}°C" , level="DEBUG")
+        #new_fan_speed_drive = run_temperature_controller(label = "Drive" , id = "drive" , current_temp = drives_temps_max , current_fan_speed = new_fan_speed_drive)
 
-            # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the Drives
-            new_fan_speed_drive = min(new_fan_speed_drive + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
+        # Regulate Fan Speed based on HDD Temperature
+        new_fan_speed_hdd = run_temperature_controller(label = "HDD" , id = "hdd" , current_temp = hdd_temps_max , current_fan_speed = new_fan_speed_hdd)
 
-            # Echo
-            log(f"New Fan Speed based on Drive Temperature = {new_fan_speed_drive}%" , level="DEBUG")
-        elif drives_temps_max < CONFIG["drive"]["min_temp"] and new_fan_speed_drive > CONFIG["fan"]["min_speed"]:
-            # Echo
-            log(f"Decreasing Fan Speed since Drive Temperature = {drives_temps_max}°C is lower than the Minimum Setting = {CONFIG['drive']['min_temp']}°C" , level="DEBUG")
-            
-            # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
-            new_fan_speed_drive = max(new_fan_speed_drive - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
+        # Regulate Fan Speed based on SSD Temperature
+        new_fan_speed_ssd = run_temperature_controller(label = "SSD" , id = "ssd" , current_temp = ssd_temps_max , current_fan_speed = new_fan_speed_ssd)
 
-            # Echo
-            log(f"New Fan Speed based on Drive Temperature = {new_fan_speed_drive}%" , level="DEBUG")
-        else:
-            # Echo
-            log(f"Skipping Fan Speed Update since Drive Temperature = {drives_temps_max}°C is within Histeresis Range = [{CONFIG['drive']['min_temp']}°C ... {CONFIG['drive']['max_temp']}°C]" , level="DEBUG")
+        # Regulate Fan Speed based on NVME Temperature
+        new_fan_speed_nvme = run_temperature_controller(label = "NVME" , id = "nvme" , current_temp = nvme_temps_max , current_fan_speed = new_fan_speed_nvme)
 
 
         # Get worst Case
-        new_fan_speed = max([new_fan_speed_cpu , new_fan_speed_drive])
+        #new_fan_speed = max([new_fan_speed_cpu , new_fan_speed_drive])
+        new_fan_speed = max([new_fan_speed_cpu , new_fan_speed_hdd , new_fan_speed_ssd , new_fan_speed_nvme])
 
         # Set Fan Speed
         if new_fan_speed != current_fan_speed:
@@ -338,7 +378,7 @@ def configure():
     #print(json.dumps(CONFIG, indent=4, sort_keys=True))
 
     # Echo
-    log(f"Setting Fan Control Mode for Full (Manual)" , level="INFO")
+    log(f"Setting Fan Control Mode to Full (Manual)" , level="INFO")
 
     # IPMI tool command to set the fan control mode to manual (Full)   
     fan_speed_full = CONFIG["ipmi"]["fan_modes"]["full"]["registers"]
@@ -357,7 +397,7 @@ if __name__ == "__main__":
     configure()
 
     # Set initial minimum fan speed
-    log(f"Set Initial Fan Speed to {current_fan_speed}" , "INFO")
+    log(f"Set Initial Fan Speed to {current_fan_speed}%" , "INFO")
     set_fan_speed(current_fan_speed)
 
     # Run Control Loop
