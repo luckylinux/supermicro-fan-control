@@ -299,7 +299,10 @@ def configure():
     #pprint.pprint(CONFIG)
     #print(json.dumps(CONFIG, indent=4, sort_keys=True))
 
-    # IPMI tool command to set the fan control mode to manual (Full)
+    # Echo
+    print(f"Setting Fan Control Mode for Full (Manual)")
+
+    # IPMI tool command to set the fan control mode to manual (Full)   
     fan_speed_full = CONFIG["ipmi"]["fan_modes"]["full"]["registers"]
     os.system(f"ipmitool raw {' '.join(fan_speed_full)}")
     time.sleep(2)
