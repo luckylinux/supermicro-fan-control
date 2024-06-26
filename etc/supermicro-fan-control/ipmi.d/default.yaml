@@ -18,7 +18,7 @@ ipmi:
           - "0x45"
           - "0x01"
           - "0x02"
-      heavy-io:
+      heavy_io:
         registers:
           - "0x30"
           - "0x45"
@@ -26,7 +26,7 @@ ipmi:
           - "0x03"
 
     fan_zones:
-      zone_0:
+      - name: "Zone 0"
         description: "CPU Zone"
         registers:
           - "0x30"
@@ -35,7 +35,7 @@ ipmi:
           - "0x01"
           - "0x00"
 
-      zone_1:
+      - name: "Zone 1"
         description: "Peripherals Zone"
         registers:
           - "0x30"

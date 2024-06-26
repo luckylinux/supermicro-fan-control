@@ -25,10 +25,6 @@ MIN_FAN_SPEED = 50                  # [%] Initial Fan Speed
 current_fan_speed = MIN_FAN_SPEED    # [%] Current Fan Speed
 UPDATE_INTERVAL = 5                  # [s] How often Temperatures shall be checked and Fan Speed updated accordingly
 
-# IPMI tool command to set the fan control mode to manual (Full)
-os.system("ipmitool raw 0x30 0x45 0x01 0x01")
-time.sleep(2)
-
 # Init
 def init():
     # Allow Function to modify CONFIG Global Variable
@@ -135,6 +131,12 @@ import json
 print(json.dumps(CONFIG, indent=4, sort_keys=True))
 
 
+# IPMI tool command to set the fan control mode to manual (Full)
+fan_speed_full = CONFIG["ipmi"]["fan_modes"]["full"]["registers"]
+os.system(f"ipmitool raw {' '.join(fan_speed_full)}")
+time.sleep(2)
+
+
 # Stop here for now
 sys.exit(0)
 
@@ -162,16 +164,22 @@ def set_fan_speed(speed):
 
     syslog.syslog(syslog.LOG_INFO, f"Hex Speed: {hex_speed}")
 
-    # Set the fan speed for all 4 zones
-    os.system(f"ipmitool raw 0x30 0x70 0x66 0x01 0x00 0x{hex_speed}")
-    time.sleep(2)
-    os.system(f"ipmitool raw 0x30 0x70 0x66 0x01 0x01 0x{hex_speed}")
+    # Get Fan Zones Settings
+    fan_zone_0 = CONFIG["ipmi"]["fan_zones"][0]["registers"]
+    fan_zone_1 = CONFIG["ipmi"]["fan_zones"][2]["registers"]
+
+    # Set the Fan Speed for Zone 0
+    os.system(f"ipmitool raw {' '.join(fan_zone_0)} 0x{hex_speed}")
     time.sleep(2)
 
-    # Log the fan speed change to syslog
+    # Set the Fan Speed for Zone 1
+    os.system(f"ipmitool raw {' '.join(fan_zone_1)} 0x{hex_speed}")
+    time.sleep(2)
+
+    # Log the Fan Speed change to syslog
     syslog.syslog(syslog.LOG_INFO, f"Fan speed adjusted to {speed}%")
 
-    # Print the fan speed change to console
+    # Print the Fan Speed change to console
     print(f"Fan speed adjusted to {speed}% - {hex_speed}")
 
 # Set initial minimum fan speed
