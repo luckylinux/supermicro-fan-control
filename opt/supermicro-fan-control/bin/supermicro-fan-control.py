@@ -27,6 +27,16 @@ CONFIG = dict()
 # Initialize minimum Fan Speed to 50%
 current_fan_speed = 50               # [%] Current Fan Speed
 
+# Log
+def log(message , level="INFO"):
+    # Echo
+    print(f"[{level}] {message}")
+
+    # syslog.syslog(syslog.LOG_INFO, f"Hex Speed: {hex_speed}")
+
+    # Flush in order for Journalctl to show the newly added Lines
+    sys.stdout.flush()
+
 # Init
 def init():
     # Allow Function to modify CONFIG Global Variable
@@ -60,7 +70,7 @@ def merge_config(config_a , config_b):
 
     if config is not None:
         # Echo
-        print(f"[INFO] merging config_a with config_b")
+        log(f"Merging Configuration" , level="DEBUG")
 
         # Iterate over Existing Config
         for key, value in config.items():
@@ -70,7 +80,7 @@ def merge_config(config_a , config_b):
             # If the key also exists in config_b, then replace value
             if key in config_b:
                 # Echo
-                print(f"[DEBUG] Override Key {key} in config ({value} -> {config_b[key]})")
+                log(f"Override Key {key} in config ({value} -> {config_b[key]})" , level="DEBUG")
 
                 # Override
                 config[key] = config_b[key]
@@ -96,14 +106,14 @@ def merge_config(config_a , config_b):
         # Add new Keys that were only in config_b
         for key, value in config_b.items():
             # Echo
-            print(f"[DEBUG] Add non-existing Key {key} in config ({config_b[key]})")
+            log(f"Add non-existing Key {key} in config ({config_b[key]})" , level="DEBUG")
 
             # Set Key
             config[key] = value
 
     else:
         # Simply use config_b
-        print(f"[WARNING] config_a was empty/none: config_b will override everything")
+        log(f"config_a was empty/none: config_b will override everything" , level="WARNING")
         config = config_b.copy()
     
     # Return Result
@@ -118,7 +128,7 @@ def read_config(filepath):
 
     if os.path.exists(filepath):
         # Echo
-        print(f"[INFO] Loading File {filepath}")
+        log(f"Loading File {filepath}", level="INFO")
 
         with open(filepath, 'r') as f:
             # Open YAML File in Safe Mode
@@ -135,10 +145,10 @@ def read_config(filepath):
                 CONFIG = merge_config(CONFIG , data)
             else:
                 # Echo
-                print(f"[WARNING] File {filepath} is empty")
+                log(f"File {filepath} is empty" , level="WARNING")
     else:
         # Echo
-        print(f"[WARNING] File {filepath} does NOT exist")
+        log(f"File {filepath} does NOT exist" , level="WARNING")
 
 # Get the current HDD/SSD/NVME Temperature(s)
 def get_drives_temperatures():
@@ -158,7 +168,7 @@ def get_drives_temperatures():
         # If it's a Physical Disk (i.e. it has a Valid Temperature)
         if temp is not None:
             # Echo
-            print(f"Disk {filteredid} -> Temperature: {temp}°C")
+            log(f"Disk {filteredid} -> Temperature: {temp}°C" , level="INFO")
 
             # Add to Array
             temps.append(temp)
@@ -176,7 +186,7 @@ def get_cpu_temperatures():
         avg_cpu_temp = sum(cpu_temps) // len(cpu_temps)
         return avg_cpu_temp
     else:
-        print("Failed to retrieve CPU temperature.")
+        log("Failed to retrieve CPU temperature." , level="ERROR")
         return None
 
 # Set the fan speed
@@ -187,7 +197,7 @@ def set_fan_speed(speed):
     # Convert the speed percentage to a hex value
     hex_speed = format(speed * 255 // 100, "02x")
 
-    syslog.syslog(syslog.LOG_INFO, f"Hex Speed: {hex_speed}")
+    log(f"Hex Speed: {hex_speed}" , "INFO")
 
     # Get Fan Zones Settings
     fan_zone_0 = CONFIG["ipmi"]["fan_zones"][0]["registers"]
@@ -202,10 +212,10 @@ def set_fan_speed(speed):
     time.sleep(2)
 
     # Log the Fan Speed change to syslog
-    syslog.syslog(syslog.LOG_INFO, f"Fan speed adjusted to {speed}%")
+    log(f"Fan speed adjusted to {speed}%" , level="INFO")
 
     # Print the Fan Speed change to console
-    print(f"Fan speed adjusted to {speed}% - Hex: 0x{hex_speed}")
+    log(f"Fan speed adjusted to {speed}% - Hex: 0x{hex_speed}" , level="INFO")
 
 
 # Loop Method
@@ -216,7 +226,7 @@ def loop():
         cpu_temp = get_cpu_temperatures()
 
         # Print current CPU Temperature to Console
-        print(f"Current CPU Temperature: {cpu_temp}°C")
+        log(f"Current CPU Temperature: {cpu_temp}°C" , level="INFO")
 
         # Get current RAM Temperatures
         # ...
@@ -230,7 +240,7 @@ def loop():
         # Get current HDD / SSD / NVME Temperatures
         drives_temps_all = get_drives_temperatures()
         drives_temps_max = max(drives_temps_all)
-        print(f"Maximum Drive Temperature: {drives_temps_max}°C")
+        log(f"Maximum Drive Temperature: {drives_temps_max}°C" , level="INFO")
 
         # Initialize new_fan_speed = current_fan_speed
         new_fan_speed_cpu = current_fan_speed
@@ -240,13 +250,13 @@ def loop():
         # Regulate Fan Speed based on CPU Temperature
         if cpu_temp > CONFIG["cpu"]["max_temp"] and new_fan_speed_cpu < CONFIG["fan"]["max_speed"]:
             # Echo
-            print(f"Increasing Fan Speed since CPU Temperature = {cpu_temp} is higher than the Maximum Setting = {CONFIG['cpu']['max_temp']}")
+            log(f"Increasing Fan Speed since CPU Temperature = {cpu_temp} is higher than the Maximum Setting = {CONFIG['cpu']['max_temp']}" , level="DEBUG")
 
             # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the CPU
             new_fan_speed_cpu = min(new_fan_speed_cpu + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
         elif cpu_temp < CONFIG["cpu"]["min_temp"] and new_fan_speed_cpu > CONFIG["fan"]["min_speed"]:
             # Echo
-            print(f"Decreasing Fan Speed since CPU Temperature = {cpu_temp} is lower than the Minimum Setting = {CONFIG['cpu']['min_temp']}")
+            log(f"Decreasing Fan Speed since CPU Temperature = {cpu_temp} is lower than the Minimum Setting = {CONFIG['cpu']['min_temp']}" , level="DEBUG")
 
             # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
             new_fan_speed_cpu = max(new_fan_speed_cpu - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
@@ -254,13 +264,13 @@ def loop():
         # Regulate Fan Speed based on Drives Temperature
         if drives_temps_max > CONFIG["drive"]["max_temp"] and new_fan_speed_drive < CONFIG["fan"]["max_speed"]:
             # Echo
-            print(f"Increasing Fan Speed since Drive Temperature = {drives_temps_max} is higher than the Maximum Setting = {CONFIG['drive']['max_temp']}")
+            log(f"Increasing Fan Speed since Drive Temperature = {drives_temps_max} is higher than the Maximum Setting = {CONFIG['drive']['max_temp']}" , level="DEBUG")
 
             # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the Drives
             new_fan_speed_drive = min(new_fan_speed_drive + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
         elif drives_temps_max < CONFIG["drive"]["min_temp"] and new_fan_speed_drive > CONFIG["fan"]["min_speed"]:
             # Echo
-            print(f"Decreasing Fan Speed since Drive Temperature = {drives_temps_max} is lower than the Minimum Setting = {CONFIG['drive']['min_temp']}")
+            log(f"Decreasing Fan Speed since Drive Temperature = {drives_temps_max} is lower than the Minimum Setting = {CONFIG['drive']['min_temp']}" , level="DEBUG")
             
             # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
             new_fan_speed_drive = max(new_fan_speed_drive - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
@@ -271,13 +281,13 @@ def loop():
         # Set Fan Speed
         if new_fan_speed != current_fan_speed:
             # Echo
-            print("[INFO] Updating Fan Speed")
+            log("Updating Fan Speed" , level="INFO")
 
             # Update
             set_fan_speed(new_fan_speed)
         else:
             # Echo
-            print("[DEBUG] No Fan Speed Update required")
+            log("No Fan Speed Update required" , level="DEBUG")
 
         # Wait UPDATE_INTERVAL seconds before checking the temperature again
         #pprint.pprint(CONFIG)
@@ -307,7 +317,7 @@ def configure():
     #print(json.dumps(CONFIG, indent=4, sort_keys=True))
 
     # Echo
-    print(f"Setting Fan Control Mode for Full (Manual)")
+    log(f"Setting Fan Control Mode for Full (Manual)" , level="INFO")
 
     # IPMI tool command to set the fan control mode to manual (Full)   
     fan_speed_full = CONFIG["ipmi"]["fan_modes"]["full"]["registers"]
@@ -326,7 +336,7 @@ if __name__ == "__main__":
     configure()
 
     # Set initial minimum fan speed
-    print(f"Set Initial Fan Speed to {current_fan_speed}")
+    log(f"Set Initial Fan Speed to {current_fan_speed}" , "INFO")
     set_fan_speed(current_fan_speed)
 
     # Run Control Loop
