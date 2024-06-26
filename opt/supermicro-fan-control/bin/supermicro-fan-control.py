@@ -19,9 +19,9 @@ import pprint
 CONFIG = dict()
 
 # Set your desired temperature range and minimum fan speed
-MIN_TEMP = 20                        # [°C]
-MAX_TEMP = 25                        # [°C]
-MIN_FAN_SPEED = 50                  # [%] Initial Fan Speed
+MIN_TEMP = 30                        # [°C]
+MAX_TEMP = 40                        # [°C]
+MIN_FAN_SPEED = 20                   # [%] Initial Fan Speed
 current_fan_speed = MIN_FAN_SPEED    # [%] Current Fan Speed
 UPDATE_INTERVAL = 5                  # [s] How often Temperatures shall be checked and Fan Speed updated accordingly
 
@@ -39,15 +39,23 @@ def merge_config(config_a , config_b):
 
     # Initialize config as config_a
     config = config_a.copy()
+    #pprint.pprint(config)
 
     if config is not None:
-        # Iterate over Dictionary
+        # Echo
+        print(f"[INFO] merging config_a with config_b")
+
+        # Iterate over Existing Config
         for key, value in config.items():
             # Print Key
             #print(key)
 
             # If the key also exists in config_b, then replace value
             if key in config_b:
+                # Echo
+                print(f"[DEBUG] Override Key {key} in config ({value} -> {config_b[key]})")
+
+                # Override
                 config[key] = config_b[key]
 
             # Get Data of the current Iteration
@@ -67,15 +75,25 @@ def merge_config(config_a , config_b):
             #
             #   # Append to the list
             #   images.append(image)
-        else:
-        #    # Simply use config_b
-            config = config_b.copy()
+
+        # Add new Keys that were only in config_b
+        for key, value in config_b.items():
+            # Echo
+            print(f"[DEBUG] Add non-existing Key {key} in config ({config_b[key]})")
+
+            # Set Key
+            config[key] = value
+
+    else:
+        # Simply use config_b
+        print(f"[WARNING] config_a was empty/none: config_b will override everything")
+        config = config_b.copy()
     
     # Return Result
-    return config
+    return config.copy()
 
 # Read Configuration File
-def read_config(filepath = '/etc/supermicro-fan-control/settings.yaml'):
+def read_config(filepath):
     # Allow Function to modify CONFIG Global Variable
     global CONFIG
 
@@ -179,7 +197,8 @@ def loop():
             set_fan_speed(new_fan_speed)
 
         # Wait UPDATE_INTERVAL seconds before checking the temperature again
-        time.sleep(UPDATE_INTERVAL)
+        #pprint.pprint(CONFIG)
+        time.sleep(CONFIG["general"]["update_interval"])
 
 
 
