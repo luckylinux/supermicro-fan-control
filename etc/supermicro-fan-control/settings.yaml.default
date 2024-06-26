@@ -1,6 +1,21 @@
 general:
     motherboard: "default"
-    update_interval: 5
+    update_interval: 30
 
-#cpu:
-#    - "latest"
+cpu:
+    max_temp: 60
+    min_temp: 20
+    alarm_temp: 80
+    shutdown_temp: 95
+
+drive:
+    max_temp: 35
+    min_temp: 10
+    alarm_temp: 50
+    shutdown_temp: 55
+
+fan:
+    max_speed: 100
+    min_speed: 10
+    inc_speed_step: 5
+    dec_speed_step: 1 

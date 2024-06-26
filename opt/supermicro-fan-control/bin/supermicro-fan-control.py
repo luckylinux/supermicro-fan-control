@@ -24,12 +24,8 @@ from diskinfo import Disk, DiskInfo
 # Define Configuration Dictionary
 CONFIG = dict()
 
-# Set your desired temperature range and minimum fan speed
-MIN_TEMP = 30                        # [°C]
-MAX_TEMP = 40                        # [°C]
-MIN_FAN_SPEED = 40                   # [%] Initial Fan Speed
-current_fan_speed = MIN_FAN_SPEED    # [%] Current Fan Speed
-UPDATE_INTERVAL = 5                  # [s] How often Temperatures shall be checked and Fan Speed updated accordingly
+# Initialize minimum Fan Speed to 50%
+current_fan_speed = 50               # [%] Current Fan Speed
 
 # Init
 def init():
@@ -131,15 +127,28 @@ def read_config(filepath):
 
 # Get the current HDD/SSD/NVME Temperature(s)
 def get_drives_temperatures():
+    # Initialize Array
+    temps = []
+
+    # Check all Disks
     di = DiskInfo()
     disks = di.get_disk_list(sorting=True)
 
+    # Loop over Disks
     for d in disks:
         id = d.get_byid_path()
         temp = d.get_temperature()
 
+        # If it's a Physical Disk (i.e. it has a Valid Temperature)
         if temp is not None:
-            print(f"Disk {id} -> Temperature: {temp}")
+            # Echo
+            print(f"Disk {' , '.join(id)} -> Temperature: {temp}°C")
+
+            # Add to Array
+            temps.append(temp)
+
+    # Return Result
+    return temps
 
 # Get the current CPU Temperature(s)
 def get_cpu_temperatures():
@@ -180,7 +189,7 @@ def set_fan_speed(speed):
     syslog.syslog(syslog.LOG_INFO, f"Fan speed adjusted to {speed}%")
 
     # Print the Fan Speed change to console
-    print(f"Fan speed adjusted to {speed}% - {hex_speed}")
+    print(f"Fan speed adjusted to {speed}% - Hex: 0x{hex_speed}")
 
 
 # Loop Method
@@ -199,17 +208,39 @@ def loop():
         # Get current Chipset Temperatures
         # ...
 
-        # Get current HDD / SSD / NVME Temperatures
-        drives_temps = get_drives_temperatures()
+        # Get current HBA Temperatures
+        # ...
 
-        if cpu_temp > MAX_TEMP and current_fan_speed < 100:
-            # Increase the fan speed by 10% to cool down the CPU
-            new_fan_speed = min(current_fan_speed + 10, 100)
-            set_fan_speed(new_fan_speed)
-        elif cpu_temp < MIN_TEMP and current_fan_speed > MIN_FAN_SPEED:
-            # Decrease the fan speed by 1% if the temperature is below the minimum threshold
-            new_fan_speed = max(current_fan_speed - 1, MIN_FAN_SPEED)
-            set_fan_speed(new_fan_speed)
+        # Get current HDD / SSD / NVME Temperatures
+        drives_temps_all = get_drives_temperatures()
+        drives_temps_max = max(drives_temps_all)
+        print(f"Maximum Drive Temperature: {drives_temps_max}°C")
+
+        # Initialize new_fan_speed = current_fan_speed
+        new_fan_speed_cpu = current_fan_speed
+        new_fan_speed_drive = current_fan_speed
+
+        # Regulate Fan Speed based on CPU Temperature
+        if cpu_temp > CONFIG["cpu"]["max_temp"] and new_fan_speed < CONFIG["fan"]["max_speed"]:
+            # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the CPU
+            new_fan_speed_cpu = min(new_fan_speed_cpu + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
+        elif cpu_temp < CONFIG["cpu"]["min_temp"] and current_fan_speed > CONFIG["fan"]["min_speed"]:
+            # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
+            new_fan_speed_cpu = max(new_fan_speed_cpu - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
+            
+        # Regulate Fan Speed based on Drives Temperature
+        if drives_temps_max > CONFIG["drive"]["max_temp"] and new_fan_speed < CONFIG["fan"]["max_speed"]:
+            # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the Drives
+            new_fan_speed_drive = min(new_fan_speed_drive + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
+        elif drives_temps_max < CONFIG["drive"]["min_temp"] and current_fan_speed > CONFIG["fan"]["min_speed"]:
+            # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
+            new_fan_speed_drive = max(new_fan_speed_drive - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
+
+        # Get worst Case
+        new_fan_speed = max([new_fan_speed_cpu , new_fan_speed_drive])
+
+        # Set Fan Speed
+        set_fan_speed(new_fan_speed)
 
         # Wait UPDATE_INTERVAL seconds before checking the temperature again
         #pprint.pprint(CONFIG)
@@ -255,7 +286,7 @@ if __name__ == "__main__":
     configure()
 
     # Set initial minimum fan speed
-    set_fan_speed(MIN_FAN_SPEED)
+    set_fan_speed(CONFIG["fan"]["min_speed"])
 
     # Run Control Loop
     loop()

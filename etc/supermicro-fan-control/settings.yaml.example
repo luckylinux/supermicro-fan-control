@@ -1,6 +1,6 @@
 general:
     motherboard: "X10SLM-F"
-    update_interval: 5
+    update_interval: 30
 
 #cpu:
 #    - "latest"
