@@ -8,6 +8,8 @@ This Project features two separate Components:
 
 For a Protection-Only (Overtemperature Protection) see my Separate [Cooling Failure Protection](https://github.com/luckylinux/cooling-failure-protection) Project.
 
+**IMPORTANT**: it is **HIGHLY RECCOMENDED** to setup the Separate [Cooling Failure Protection](https://github.com/luckylinux/cooling-failure-protection) Service as well, in order to ensure some Level of Redundancy !!!
+
 # Features
 - Temperature Controller for Supermicro IPMI Devices ("Variable Fan Speed")
 - Temperature Warning (BEEP) when System Cooling cannot keep up with Devices Temperatures
