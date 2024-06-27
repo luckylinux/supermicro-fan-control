@@ -11,8 +11,8 @@ DEBUG_MODE="yes"
 # Run Setup
 source ${toolpath}/setup.sh
 
-# If NOT in Manual Debug Mode
-if [[ "${DEBUG_MODE}" != "yes" ]]
+# If in Manual Debug Mode
+if [[ "${DEBUG_MODE}" == "yes" ]]
     then
     # Stop Systemd Service
     systemctl stop supermicro-fan-control.service
