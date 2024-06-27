@@ -45,7 +45,7 @@ beep -f 2500 -l 2000 -r 5 -D 1000
 Set the Kernel Module to be automatically loaded at Startup:
 ```
 echo "pcspkr" > /etc/modules-load.d/beep.conf
-
+```
 
 # Credits
 Project based on the work of [Benjamin Bryan](https://b3n.org).
