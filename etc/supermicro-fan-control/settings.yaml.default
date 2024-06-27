@@ -2,39 +2,46 @@ general:
     motherboard: "default"
     update_interval: 30
 
+beep:
+    frequency: 2500
+    duration: 1250
+    delay: 1250
+    repetitions: 5 
+
 # Generic CPU
 cpu:
     max_temp: 60
     min_temp: 50
-    alarm_temp: 80
+    warning_temp: 80
     shutdown_temp: 95
 
 # Generic Drive
+# (NOT used since currently different Behaviors are configured for HDD/SSD/NVME)
 drive:
     max_temp: 37
     min_temp: 32
-    alarm_temp: 50
+    warning_temp: 50
     shutdown_temp: 55
 
 # HDD Drive
 hdd:
     max_temp: 37
     min_temp: 32
-    alarm_temp: 50
+    warning_temp: 50
     shutdown_temp: 55
 
 # SSD Drive
 ssd:
     max_temp: 60
     min_temp: 50
-    alarm_temp: 70
+    warning_temp: 65
     shutdown_temp: 75
 
 # NVME Drive
 nvme:
     max_temp: 60
     min_temp: 50
-    alarm_temp: 70
+    warning_temp: 65
     shutdown_temp: 75
 
 # Generic Fan

@@ -2,10 +2,16 @@
 Supermicro Fan Control
 
 # Introduction
+This Project features two separate Components:
+- Fan Speed Control (AKA "Variable Fan Speed")
+- Device Overtemperature Protection (in case Cooling failed or airflow/static Pressure is not Sufficient to properly cool down Components)
 
+For a Protection-Only (Overtemperature Protection) see my Separate [Cooling Failure Protection](https://github.com/luckylinux/cooling-failure-protection) Project.
 
 # Features
-
+- Temperature Controller for Supermicro IPMI Devices ("Variable Fan Speed")
+- Temperature Warning (BEEP) when System Cooling cannot keep up with Devices Temperatures
+- Temperature Protection (SHUTDOWN) when System Cooling cannot keep up with Devices Temperatures
 
 # Installation
 Clone the Repository:
@@ -22,6 +28,22 @@ Run the Setup:
 ```
 ./setup.sh
 ```
+
+# Enable the Beep Module for early Warnings
+Load the Kernel Module:
+```
+sudo modprobe pcspkr
+```
+
+Then perform a Test with:
+```
+beep -f 2500 -l 2000 -r 5 -D 1000
+```
+
+Set the Kernel Module to be automatically loaded at Startup:
+```
+echo "pcspkr" > /etc/modules-load.d/beep.conf
+
 
 # Credits
 Project based on the work of [Benjamin Bryan](https://b3n.org).

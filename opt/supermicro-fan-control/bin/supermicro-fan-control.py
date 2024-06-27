@@ -115,7 +115,7 @@ def merge_config(config_a , config_b):
         # Simply use config_b
         log(f"config_a was empty/none: config_b will override everything" , level="WARNING")
         config = config_b.copy()
-    
+
     # Return Result
     return config.copy()
 
@@ -261,6 +261,37 @@ def run_temperature_controller(label , id , current_temp , current_fan_speed):
     # Return Result
     return new_fan_speed
 
+# Run Drives (HDD/SSD/NVME) Temperature Protection
+def run_temperature_protection(label , id , current_temp):
+    if current_temp >= CONFIG[id]["shutdown_temp"]:
+        # Echo
+        log(f"{label} Temperature = {current_temp}°C is higher than the Shutdown Setting = {CONFIG[id]['shutdown_temp']}°C" , level="CRITICAL")
+        log(f"Shutting Down System Now" , level="CRITICAL")
+
+        # Wait a bit to make sure we logged everything
+        time.sleep(2)
+
+        # SHUTDOWN to prevent Damage
+        os.system(f"shutdown -h now")
+    if current_temp >= CONFIG[id]["warning_temp"] and current_temp < CONFIG[id]["shutdown_temp"]:
+        # Echo
+        log(f"{label} Temperature = {current_temp}°C is higher than the Warning Setting = {CONFIG[id]['warning_temp']}°C" , level="WARNING")
+        log(f"Sounding BEEP on the Speaker" , level="WARNING")
+
+        # BEEP Warning
+
+        # Harcoded Values
+        #os.system(f"beep -f 2500 -l 2000 -r 5 -D 1000")
+
+        # Configurable Values
+        os.system(f"beep -f {CONFIG['beep']['frequency']} -l {CONFIG['beep']['duration']} -r {CONFIG['beep']['repetitions']} -D {CONFIG['beep']['delay']}")
+    elif current_temp < CONFIG[id]["warning_temp"]:
+        # Echo
+        log(f"{label} Temperature = {current_temp}°C is lower than the Warning Setting = {CONFIG[id]['warning_temp']}°C. No Action required." , level="DEBUG")
+    else:
+        # Echo
+        log(f"{label} Did NOT match any IF Condition. Temperature = {current_temp}°C. Warning Setting = {CONFIG[id]['warning_temp']}°C. Shutdown Setting = {CONFIG[id]['shutdown_temp']}°C. Investigation required.." , level="WARNING")
+
 # Loop Method
 # Infinite Loop
 def loop():
@@ -310,7 +341,7 @@ def loop():
             log(f"Maximum NVME Temperature: {nvme_temps_max}°C" , level="INFO")
         else:
             nvme_temps_max = 0
-            log(f"No NVME Detected" , level="INFO")   
+            log(f"No NVME Detected" , level="INFO")
 
         # Initialize new_fan_speed = current_fan_speed
         new_fan_speed_cpu = current_fan_speed
@@ -319,17 +350,29 @@ def loop():
         new_fan_speed_ssd = current_fan_speed
         new_fan_speed_nvme = current_fan_speed
 
+        # Protect CPU Temperature
+        # TO_BE_IMPLEMENTED
+
         # Regulate Fan Speed based on CPU Temperature
         new_fan_speed_cpu = run_temperature_controller(label = "CPU" , id = "cpu" , current_temp = cpu_temp , current_fan_speed = new_fan_speed_cpu)
 
         # Regulate Fan Speed based on Drives Temperature
         #new_fan_speed_drive = run_temperature_controller(label = "Drive" , id = "drive" , current_temp = drives_temps_max , current_fan_speed = new_fan_speed_drive)
 
+        # Protect HDD Temperature
+        run_temperature_protection(label = "HDD" , id = "hdd" , current_temp = hdd_temps_max)
+
         # Regulate Fan Speed based on HDD Temperature
         new_fan_speed_hdd = run_temperature_controller(label = "HDD" , id = "hdd" , current_temp = hdd_temps_max , current_fan_speed = new_fan_speed_hdd)
 
+        # Protect SSD Temperature
+        run_temperature_protection(label = "SSD" , id = "ssd" , current_temp = ssd_temps_max)
+
         # Regulate Fan Speed based on SSD Temperature
         new_fan_speed_ssd = run_temperature_controller(label = "SSD" , id = "ssd" , current_temp = ssd_temps_max , current_fan_speed = new_fan_speed_ssd)
+
+        # Protect NVME Temperature
+        run_temperature_protection(label = "NVME" , id = "nvme" , current_temp = nvme_temps_max)
 
         # Regulate Fan Speed based on NVME Temperature
         new_fan_speed_nvme = run_temperature_controller(label = "NVME" , id = "nvme" , current_temp = nvme_temps_max , current_fan_speed = new_fan_speed_nvme)
