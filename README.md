@@ -15,6 +15,23 @@ For a Protection-Only (Overtemperature Protection) see my Separate [Cooling Fail
 - Temperature Warning (BEEP) when System Cooling cannot keep up with Devices Temperatures
 - Temperature Protection (SHUTDOWN) when System Cooling cannot keep up with Devices Temperatures
 
+# Requirements
+At the moment this was developed for use with GNU/Linux.
+
+Nevertheless, since the Packages are very similar for both GNU/Linux and other UNIX-Like OS (TrueNAS, FreeBSD, etc), there shouldn't be a huge effort required in order to make the Tool Multi-Platform.
+
+Feel free to Describe the required Changes in an Issue and/or submit a PR :+1:.
+
+In order to run a (mostly) Automated Setup (using `setup.sh`) the Following is Required:
+- `bash`
+
+In order to be able to Run Correctly, the Tool needs the following Components/Systems:
+- `python` Version 3 (Tested with `python` Version 3.11 and 3.12)
+- `systemd` (in the future other Init Systems might be supported)
+- `ipmitool` (to be able to change Fan Speed)
+- `smartctl` (to read Disks Temperatures)
+- `beep` (for generating an Audible WARNING generation in case Temperature is getting dangerously High)
+
 # Installation
 Clone the Repository:
 ```
