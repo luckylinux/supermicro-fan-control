@@ -26,7 +26,9 @@ ipmi:
           - "0x03"
 
     fan_zones:
-      - name: "Zone 0"
+      - id: "0"
+        name: "Zone 0"
+        label: "CPU_Zone"
         description: "CPU Zone"
         registers:
           - "0x30"
@@ -35,7 +37,9 @@ ipmi:
           - "0x01"
           - "0x00"
 
-      - name: "Zone 1"
+      - id: "1"
+        name: "Zone 1"
+        label: "Peripherals_Zone"
         description: "Peripherals Zone"
         registers:
           - "0x30"
