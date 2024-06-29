@@ -83,6 +83,21 @@ After you found what works for you, please submit a PR with your Particular Moth
 
 This will be included in `etc/supermicro-fan-control/ipmi.d/<motherboard>.yml`.
 
+# ToDo
+No Timeline is currently defined.
+
+## Docker Image
+In theory, it should be possible to run this as a Docker Container.
+
+This will however require ROOT Privileges or Setuid Bit set and/or `CAP_SYS_RAWIO`, since smartctl requires those.
+
+## Notifications
+In the Future better Notifications than just a `beep` might be supported.
+
+The current Plan would be to leverage the existing Frameworks/Bridges, including:
+- `mailrise` (`smtp` -> `apprise`), requires an MTA to be Configured on the System running this Tool (e.g.`postfix`)
+- [Notifiers Providers](https://notifiers.readthedocs.io/en/latest/providers/index.html)
+
 # Credits
 Project based on the work of [Benjamin Bryan](https://b3n.org).
 
