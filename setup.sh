@@ -8,20 +8,29 @@ if [[ ! -v toolpath ]]; then scriptpath=$(cd "$( dirname "${BASH_SOURCE[0]}" )" 
 mkdir -p /etc/supermicro-fan-control
 mkdir -p /opt/supermicro-fan-control
 
+# Create TMP Folder (only needed for Binary Files built using Nuitka --onefile)
+mkdir -p /opt/supermicro-fan-control/tmp
+
 # Create venv
 python3 -m venv /opt/supermicro-fan-control/venv
 
 # Activate venv
 source /opt/supermicro-fan-control/venv/bin/activate
 
+# Enable Development Tools
+if [[ "${ENABLE_DEVEL}" == "yes" ]]
+then
+    pip install -r requirements.devel.txt
+fi
+
 # If NOT in Manual Debug Mode
 if [[ "${DEBUG_MODE}" == "yes" ]]
 then
     # Install Requirements (Suppress Echo)
-    pip install -q -r requirements.txt
+    pip install -q -r requirements.prod.txt
 else
     # Install Requirements (Echo)
-    pip install -r requirements.txt
+    pip install -r requirements.prod.txt
 fi
 
 # Install App
