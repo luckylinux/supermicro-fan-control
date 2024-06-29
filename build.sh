@@ -26,12 +26,12 @@ cp ${toolpath}/opt/supermicro-fan-control/bin/supermicro-fan-control.py ${toolpa
 cd ${toolpath}/tmp || exit
 
 # Build using Nuitka
-#python -m nuitka --standalone --follow-imports --onefile supermicro-fan-control.py
+python -m nuitka --standalone --follow-imports --onefile supermicro-fan-control.py
 
 
 # Build using Nuitka (needed in order to bypass some noexec Permission Issues ?)
 # https://github.com/Nuitka/Nuitka/issues/2246
-python -m nuitka --standalone --follow-imports --onefile --onefile-tempdir-spec=/opt/supermicro-fan-control/tmp supermicro-fan-control.py
+#python -m nuitka --standalone --follow-imports --onefile --onefile-tempdir-spec=/opt/supermicro-fan-control/tmp supermicro-fan-control.py
 
 # Move into the Respective Folders
 mv supermicro-fan-control.dist/* ${toolpath}/dist/
