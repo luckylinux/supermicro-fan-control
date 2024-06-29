@@ -21,6 +21,9 @@ import json
 # Python DiskInfo Module
 from diskinfo import Disk, DiskInfo, DiskType
 
+# Subprocess Python Module
+from subprocess import Popen , PIPE, run
+
 # Define Configuration Dictionary
 CONFIG = dict()
 
@@ -207,11 +210,13 @@ def set_fan_speed(speed):
     fan_zone_1 = CONFIG["ipmi"]["fan_zones"][1]["registers"]
 
     # Set the Fan Speed for Zone 0
-    os.system(f"ipmitool raw {' '.join(fan_zone_0)} 0x{hex_speed}")
+    #os.system(f"ipmitool raw {' '.join(fan_zone_0)} 0x{hex_speed}")
+    run_cmd(["ipmitool" , "raw"] + fan_zone_0 + [f"0x{hex_speed}"])
     time.sleep(2)
 
     # Set the Fan Speed for Zone 1
-    os.system(f"ipmitool raw {' '.join(fan_zone_1)} 0x{hex_speed}")
+    #os.system(f"ipmitool raw {' '.join(fan_zone_1)} 0x{hex_speed}")
+    run_cmd(["ipmitool" , "raw"] + fan_zone_1 + [f"0x{hex_speed}"])
     time.sleep(2)
 
     # Log the Fan Speed change to syslog
@@ -291,6 +296,25 @@ def run_temperature_protection(label , id , current_temp):
     else:
         # Echo
         log(f"{label} Did NOT match any IF Condition. Temperature = {current_temp}°C. Warning Setting = {CONFIG[id]['warning_temp']}°C. Shutdown Setting = {CONFIG[id]['shutdown_temp']}°C. Investigation required.." , level="WARNING")
+
+
+# Run Command
+# To be implemented in the future in Order to Detect Errors returned by e.g. ipmitool
+def run_cmd(command):
+    # Echo Command
+    log(f"Running Command: {' '.join([str(item) for item in command])}" , level="DEBUG")
+    log(f"Command Array: {command}" , level="DEBUG")
+
+    # Run Command
+    result_cmd = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True , text=True)
+
+    if result_cmd.returncode != 0:
+        text_cmd = result_cmd.stderr.rsplit("\n")
+        log(f"Command exited with a non-Zero Error Code" , level="ERROR")
+        log(f"{result_cmd.stderr}" , level="ERROR")
+    else:
+        text_cmd = result_cmd.stdout.rsplit("\n")
+
 
 # Loop Method
 # Infinite Loop
@@ -421,11 +445,20 @@ def configure():
     #print(json.dumps(CONFIG, indent=4, sort_keys=True))
 
     # Echo
+    log(f"Setting Fan Control Mode to Optimal" , level="INFO")
+    log(f"This is needed because in some cases the Fan Speed is stuck, if already starting in Full Mode" , level="INFO")
+
+    # IPMI tool command to set the fan control mode to Optimal
+    fan_speed_heavy_io = CONFIG["ipmi"]["fan_modes"]["optimal"]["registers"]
+    run_cmd(["ipmitool" , "raw"] + fan_speed_heavy_io)
+
+    # Echo
     log(f"Setting Fan Control Mode to Full (Manual)" , level="INFO")
 
-    # IPMI tool command to set the fan control mode to manual (Full)   
+    # IPMI tool command to set the fan control mode to manual (Full)
     fan_speed_full = CONFIG["ipmi"]["fan_modes"]["full"]["registers"]
-    os.system(f"ipmitool raw {' '.join(fan_speed_full)}")
+    #os.system(f"ipmitool raw {' '.join(fan_speed_full)}")
+    run_cmd(["ipmitool" , "raw"] + fan_speed_full)
     time.sleep(2)
 
     # Stop here for now
