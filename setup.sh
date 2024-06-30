@@ -4,12 +4,55 @@
 relativepath="./" # Define relative path to go from this script to the root level of the tool
 if [[ ! -v toolpath ]]; then scriptpath=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd ); toolpath=$(realpath --canonicalize-missing ${scriptpath}/${relativepath}); fi
 
+# Load functions
+source ${toolpath}/functions.sh
+
 # Create Folders
 mkdir -p /etc/supermicro-fan-control
 mkdir -p /opt/supermicro-fan-control
 
 # Create TMP Folder (only needed for Binary Files built using Nuitka --onefile)
 mkdir -p /opt/supermicro-fan-control/tmp
+
+
+if [ ! -f "/etc/modules-load.d/beep.conf" ]
+then
+   # Rebuild initramfs
+   REBUILD_INITRD="yes"
+else
+   # Do NOT rebuild initramfs
+   REBUILD_INITRD="no"
+fi
+
+# Setup Kernel Module loading for BEEP
+echo "pcspkr" > /etc/modules-load.d/beep.conf
+
+# Revert "ugly and loud noise, getting on everyone's nerves; this should be done by a nice pulseaudio bing (Ubuntu: #77010)"
+# This was apparently introduced by Ubuntu, but I believe it's better to know than NOT to know, when we have a critical issue !
+sed -Ei "s|^blacklist pcspkr|#blacklist pcspkr|" /etc/modprobe.d/blacklist.conf
+
+# Echo
+#echo "IMPORTANT: Remember to Update / Regenerate your initramfs/initrd in case this is the first Time you execute this Script"
+#echo "IMPORTANT: This is/might be required to properly load the pcspkr / BEEP Kernel Module"
+
+if [[ "REBUILD_INITRD" == "yes" ]]
+then
+   # Rebuild initramfs
+   if [[ -n $(command -v update-initramfs) ]]
+   then
+      # Debian/Ubuntu/etc
+      echo "Rebuild INITRD using update-initramfs"
+      update-initramfs -k all -u
+   elif [[ -n $(command -v dracut) ]]
+   then
+      # Fedora/RHEL/Archlinux/etc
+      echo "Rebuild INITRD using dracut"
+      dracut --regenerate-all --force
+   else
+      # Other
+      echo "!! YOU MUST MANUALLY REBUILD INITRD. NEITHER update-initramfs NEITHER dracut have been detected !!"
+   fi
+fi
 
 # Create venv
 python3 -m venv /opt/supermicro-fan-control/venv
@@ -58,5 +101,8 @@ then
     systemctl restart supermicro-fan-control.service
 
     # Show Status of Service in case the are any Errors
-    systemctl status supermicro-fan-control.service
+    systemctl status --no-pager supermicro-fan-control.service
+
+    # Show and Follow Logs
+    journalctl -f -xeu supermicro-fan-control.service
 fi

@@ -35,18 +35,24 @@ In order to be able to Run Correctly, the Tool needs the following Components/Sy
 # Installation
 
 Clone the Repository:
-```
+```shell
 git clone https://github.com/luckylinux/supermicro-fan-control.git
 ```
 
 Change Folder to the Project that was just cloned:
-```
+```shell
 cd supermicro-fan-control
 ```
+
 ## Preferred (use Python in venv)
 Run the Setup:
-```
+```shell
 ./setup.sh
+```
+
+After that, check the logs:
+```shell
+journalctl -f -xeu supermicro-fan-control
 ```
 
 ## Manual (use Binary Packages)
@@ -57,19 +63,42 @@ You however need to Manually setup everything else, including:
 - Configuration Files in `/etc/supermicro-fan-control`
 
 # Enable the Beep Module for early Warnings
+UPDATE: this is now performed automatically by `setup.sh`.
+
 Load the Kernel Module:
-```
+```shell
 sudo modprobe pcspkr
 ```
 
 Then perform a Test with:
-```
+```shell
 beep -f 2500 -l 2000 -r 5 -D 1000
 ```
 
 Set the Kernel Module to be automatically loaded at Startup:
-```
+```shell
 echo "pcspkr" > /etc/modules-load.d/beep.conf
+```
+
+For Ubuntu at least. you also need to REMOVE the blacklisting in `/etc/modprobe.d/blacklist.conf`:
+```shell
+# ugly and loud noise, getting on everyone's nerves; this should be done by a
+# nice pulseaudio bing (Ubuntu: #77010)
+#blacklist pcspkr
+```
+
+
+
+# Update initramfs / initrd.
+UPDATE: this is currently performed automatically if `update-initramfs` or `dracut` are Detected.
+
+Debian/Ubuntu uses `update-initramfs`, while Fedora/RHEL/Archlinux use `dracut`.
+
+You can also do it manually.
+
+For example on Debian/Ubuntu:
+```shell
+update-initramfs -k all -u ; update-grub
 ```
 
 # Test that is works Correctly
