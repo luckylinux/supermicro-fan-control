@@ -7,6 +7,8 @@ import subprocess
 import time
 import syslog
 import re
+import math
+import csv
 
 # Python Modules to interact with YAML Files
 import yaml
@@ -195,6 +197,37 @@ def get_cpu_temperatures():
         log("Failed to retrieve CPU temperature." , level="ERROR")
         return None
 
+# Check if string is float
+def isfloat(text):
+    try:
+        float(text)
+        return True
+    except ValueError:
+        return False
+
+# Get the current Fan Speed(s)
+def get_fan_speeds():
+    fan_speed_lines = subprocess.check_output("ipmitool -c sensor | grep -Ei '^FAN|^MB-FAN|^BPN-FAN'" , shell=True).decode()
+    
+    if fan_speed_lines:
+        #for fan_speed in fan_speed_lines:
+        #    print(f"Fan Speed: {fan_speed}")
+        reader = csv.reader(fan_speed_lines.split('\n'), delimiter=',')
+        for row in reader:
+            # If Array is NOT empty
+            if row is not None and len(row) > 0:
+                # Get Label
+                label = row[0]
+
+                # Get Value
+                value = row[1]
+
+                # If Speed is a valid Number
+                if isfloat(value) is True:
+                    number = float(value)
+                    #if not math.isnan(number) and not math.isinf(number):
+                    log(f"Current {label} Fan Speed: {number} rpm" , level="DEBUG")
+
 # Set the fan speed
 def set_fan_speed(speed):
     global current_fan_speed
@@ -203,7 +236,7 @@ def set_fan_speed(speed):
     # Convert the speed percentage to a hex value
     hex_speed = format(speed * 255 // 100, "02x")
 
-    log(f"Hex Speed: 0x{hex_speed}%" , "INFO")
+    log(f"Fan Controller: Setting Hex Speed Value to 0x{hex_speed}" , "INFO")
 
     # Get Fan Zones Settings
     fan_zone_0 = CONFIG["ipmi"]["fan_zones"][0]["registers"]
@@ -220,83 +253,93 @@ def set_fan_speed(speed):
     time.sleep(2)
 
     # Log the Fan Speed change to syslog
-    log(f"Fan speed adjusted to {speed}%" , level="INFO")
+    log(f"Fan Controller: Fan speed has been adjusted to {speed}% (Hex Value 0x{hex_speed})" , level="INFO")
 
     # Print the Fan Speed change to console
-    log(f"Fan speed adjusted to {speed}% - Hex: 0x{hex_speed}" , level="INFO")
+    #log(f"Fan Controller: Fan speed adjusted to {speed}% - Hex: 0x{hex_speed}" , level="INFO")
 
 
 # Run Temperature Controller
 def run_temperature_controller(label , id , current_temp , current_fan_speed):
-    # Initialize Variable
-    new_fan_speed = current_fan_speed
+    if current_temp is not None:
+        # Initialize Variable
+        new_fan_speed = current_fan_speed
 
-    if current_temp > CONFIG[id]["max_temp"] and new_fan_speed < CONFIG["fan"]["max_speed"]:
-        # Echo
-        log(f"{label} Temperature Controller: Increasing Fan Speed Reference since {label} Controller Temperature = {current_temp}°C is higher than the Maximum Setting = {CONFIG[id]['max_temp']}°C" , level="DEBUG")
+        if current_temp > CONFIG[id]["max_temp"] and new_fan_speed < CONFIG["fan"]["max_speed"]:
+            # Echo
+            log(f"{label} Temperature Controller: Increasing Fan Speed Reference since {label} Controller Temperature = {current_temp}°C is higher than the Maximum Setting = {CONFIG[id]['max_temp']}°C" , level="DEBUG")
 
-        # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the <id>
-        new_fan_speed = min(new_fan_speed + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
+            # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the <id>
+            new_fan_speed = min(new_fan_speed + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
 
-        # Echo
-        log(f"{label} Temperature Controller: New Fan Speed Reference based on {label} Controller Temperature: {new_fan_speed}%" , level="DEBUG")
+            # Echo
+            log(f"{label} Temperature Controller: New Fan Speed Reference based on {label} Controller Temperature: {new_fan_speed}%" , level="DEBUG")
 
-    elif current_temp < CONFIG[id]["min_temp"] and new_fan_speed > CONFIG["fan"]["min_speed"]:
-        # Echo
-        log(f"{label} Temperature Controller: Decreasing Fan Speed Reference since {label} Temperature = {current_temp}°C is lower than the Minimum Setting = {CONFIG[id]['min_temp']}°C" , level="DEBUG")
+        elif current_temp < CONFIG[id]["min_temp"] and new_fan_speed > CONFIG["fan"]["min_speed"]:
+            # Echo
+            log(f"{label} Temperature Controller: Decreasing Fan Speed Reference since {label} Temperature = {current_temp}°C is lower than the Minimum Setting = {CONFIG[id]['min_temp']}°C" , level="DEBUG")
 
-        # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
-        new_fan_speed = max(new_fan_speed - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
+            # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
+            new_fan_speed = max(new_fan_speed - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
 
-        # Echo
-        log(f"{label} Temperature Controller: New Fan Speed Reference based on {label} Controller Temperature: {new_fan_speed}%" , level="DEBUG")
+            # Echo
+            log(f"{label} Temperature Controller: New Fan Speed Reference based on {label} Controller Temperature: {new_fan_speed}%" , level="DEBUG")
+        else:
+            if new_fan_speed >= CONFIG["fan"]["max_speed"]:
+                # Echo
+                log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed} is already >= {CONFIG['fan']['max_speed']}°C" , level="DEBUG")
+
+            elif new_fan_speed <= CONFIG["fan"]["min_speed"]:
+                # Echo
+                log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed} is already <= {CONFIG['fan']['min_speed']}°C" , level="DEBUG")
+
+            elif current_temp >= CONFIG[id]['min_temp'] and current_temp <= CONFIG[id]['max_temp']:
+                # Echo
+                log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since {label} Temperature = {current_temp}°C is within Histeresis Range = [{CONFIG[id]['min_temp']}°C ... {CONFIG[id]['max_temp']}°C]" , level="DEBUG")
+
+        # Return Result
+        return new_fan_speed
     else:
-        if new_fan_speed >= CONFIG["fan"]["max_speed"]:
-            # Echo
-            log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed} is already >= {CONFIG['fan']['max_speed']}°C" , level="DEBUG")
+        # Echo
+        log(f"{label} Temperature Controller: No Devices of Type {label} are installed. No Action will be performed for {label} Temperature Regulation.")
 
-        elif new_fan_speed <= CONFIG["fan"]["min_speed"]:
-            # Echo
-            log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed} is already <= {CONFIG['fan']['min_speed']}°C" , level="DEBUG")
-
-        elif current_temp >= CONFIG[id]['min_temp'] and current_temp <= CONFIG[id]['max_temp']:
-            # Echo
-            log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since {label} Temperature = {current_temp}°C is within Histeresis Range = [{CONFIG[id]['min_temp']}°C ... {CONFIG[id]['max_temp']}°C]" , level="DEBUG")
-
-    # Return Result
-    return new_fan_speed
+        # Return Zero
+        return 0
 
 # Run Drives (HDD/SSD/NVME) Temperature Protection
 def run_temperature_protection(label , id , current_temp):
-    if current_temp >= CONFIG[id]["shutdown_temp"]:
-        # Echo
-        log(f"{label} Temperature = {current_temp}°C is higher than the Shutdown Setting = {CONFIG[id]['shutdown_temp']}°C" , level="CRITICAL")
-        log(f"Shutting Down System Now" , level="CRITICAL")
+    if current_temp is not None:
+        if current_temp >= CONFIG[id]["shutdown_temp"]:
+            # Echo
+            log(f"{label} OverTemperature Protection: Temperature = {current_temp}°C is higher than the Shutdown Setting = {CONFIG[id]['shutdown_temp']}°C" , level="CRITICAL")
+            log(f"{label} OverTemperature Protection: Shutting Down System Now" , level="CRITICAL")
 
-        # Wait a bit to make sure we logged everything
-        time.sleep(2)
+            # Wait a bit to make sure we logged everything
+            time.sleep(2)
 
-        # SHUTDOWN to prevent Damage
-        os.system(f"shutdown -h now")
-    if current_temp >= CONFIG[id]["warning_temp"] and current_temp < CONFIG[id]["shutdown_temp"]:
-        # Echo
-        log(f"{label} Temperature = {current_temp}°C is higher than the Warning Setting = {CONFIG[id]['warning_temp']}°C" , level="WARNING")
-        log(f"Sounding BEEP on the Speaker" , level="WARNING")
+            # SHUTDOWN to prevent Damage
+            os.system(f"shutdown -h now")
+        if current_temp >= CONFIG[id]["warning_temp"] and current_temp < CONFIG[id]["shutdown_temp"]:
+            # Echo
+            log(f"{label} OverTemperature Protection: Temperature = {current_temp}°C is higher than the Warning Setting = {CONFIG[id]['warning_temp']}°C" , level="WARNING")
+            log(f"{label} OverTemperature Protection: Sounding BEEP on the Speaker" , level="WARNING")
 
-        # BEEP Warning
+            # BEEP Warning
 
-        # Harcoded Values
-        #os.system(f"beep -f 2500 -l 2000 -r 5 -D 1000")
+            # Harcoded Values
+            #os.system(f"beep -f 2500 -l 2000 -r 5 -D 1000")
 
-        # Configurable Values
-        os.system(f"beep -f {CONFIG['beep']['frequency']} -l {CONFIG['beep']['duration']} -r {CONFIG['beep']['repetitions']} -D {CONFIG['beep']['delay']}")
-    elif current_temp < CONFIG[id]["warning_temp"]:
-        # Echo
-        log(f"{label} Temperature = {current_temp}°C is lower than the Warning Setting = {CONFIG[id]['warning_temp']}°C. No Action required." , level="DEBUG")
+            # Configurable Values
+            os.system(f"beep -f {CONFIG['beep']['frequency']} -l {CONFIG['beep']['duration']} -r {CONFIG['beep']['repetitions']} -D {CONFIG['beep']['delay']}")
+        elif current_temp < CONFIG[id]["warning_temp"]:
+            # Echo
+            log(f"{label} OverTemperature Protection: {label} Temperature = {current_temp}°C is lower than the {label} OverTemperature Warning Setting = {CONFIG[id]['warning_temp']}°C. No Action required." , level="DEBUG")
+        else:
+            # Echo
+            log(f"{label} OverTemperature Protection: Did NOT match any IF Condition. Temperature = {current_temp}°C. {label} OverTemperature Warning Setting = {CONFIG[id]['warning_temp']}°C. {label} OverTemperature Shutdown Setting = {CONFIG[id]['shutdown_temp']}°C. Investigation required.." , level="WARNING")
     else:
         # Echo
-        log(f"{label} Did NOT match any IF Condition. Temperature = {current_temp}°C. Warning Setting = {CONFIG[id]['warning_temp']}°C. Shutdown Setting = {CONFIG[id]['shutdown_temp']}°C. Investigation required.." , level="WARNING")
-
+        log(f"{label} OverTemperature Protection: No Devices of Type {label} are installed. No Action will be performed for {label} OverTemperature Protection.")
 
 # Run Command
 # To be implemented in the future in Order to Detect Errors returned by e.g. ipmitool
@@ -347,7 +390,7 @@ def loop():
             hdd_temps_max = max(hdd_temps_all)
             log(f"Maximum HDD Temperature: {hdd_temps_max}°C" , level="INFO")
         else:
-            hdd_temps_max = 0
+            hdd_temps_max = None
             log(f"No HDD Detected" , level="INFO")
 
         # Get current SSD Temperatures
@@ -357,7 +400,7 @@ def loop():
             ssd_temps_max = max(ssd_temps_all)
             log(f"Maximum SSD Temperature: {ssd_temps_max}°C" , level="INFO")
         else:
-            ssd_temps_max = 0
+            ssd_temps_max = None
             log(f"No SSD Detected" , level="INFO")
 
         # Get current NVME Temperatures
@@ -367,7 +410,7 @@ def loop():
             nvme_temps_max = max(nvme_temps_all)
             log(f"Maximum NVME Temperature: {nvme_temps_max}°C" , level="INFO")
         else:
-            nvme_temps_max = 0
+            nvme_temps_max = None
             log(f"No NVME Detected" , level="INFO")
 
         # Initialize new_fan_speed = current_fan_speed
@@ -412,16 +455,19 @@ def loop():
         # Set Fan Speed
         if new_fan_speed != current_fan_speed:
             # Echo
-            log(f"Updating Fan Speed from {current_fan_speed}% to {new_fan_speed}%." , level="INFO")
+            log(f"Fan Controller: Updating Fan Speed from {current_fan_speed}% to {new_fan_speed}%." , level="INFO")
 
             # Update
             set_fan_speed(new_fan_speed)
         else:
             # Echo
-            log(f"No Fan Speed Update required. Keeping Fan Speed to {current_fan_speed}% but sending Reference Again." , level="DEBUG")
+            log(f"Fan Controller: No Fan Speed Update required. Keeping Fan Speed to {current_fan_speed}% but sending Reference Again." , level="DEBUG")
 
             # Prevent e.g. (external) manual testing from "blocking" the Fan Speed to a Low Value in case Fan Speed is already at 100%
             set_fan_speed(new_fan_speed)
+
+        # Get and Log Current Fan Speed
+        get_fan_speeds()
 
         # Wait UPDATE_INTERVAL seconds before checking the temperature again
         #pprint.pprint(CONFIG)
