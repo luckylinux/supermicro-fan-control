@@ -62,6 +62,18 @@ You however need to Manually setup everything else, including:
 - `systemd` Service
 - Configuration Files in `/etc/supermicro-fan-control`
 
+# Build
+## Build a Binary Package
+From inside the checked out Repository Folder:
+```shell
+cd supermicro-fan-controller
+```
+
+Run:
+```shell
+./build.sh
+```
+
 # Environment Configuration Variables
 The following Environment Configuration Variables can be set:
 - `SUPERMICRO_FAN_CONTROL_CONFIG_PATH`: where all the YML Configuration Files are located (defaults to `/etc/supermicro-fan-control`)
@@ -120,6 +132,8 @@ This will be included in `etc/supermicro-fan-control/ipmi.d/<motherboard>.yml`.
 No Timeline is currently defined.
 
 ## Get Current Fan Speed
+IMPLEMENTED in commit 4b9f3c39250d2bc7d39f1af5a22c4336e4f87530.
+
 ```shell
 ipmitool -c sensor | grep -Ei "^FAN|^MB-FAN|^BPN-FAN"
 ```
