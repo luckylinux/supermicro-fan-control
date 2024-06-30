@@ -115,6 +115,11 @@ This will be included in `etc/supermicro-fan-control/ipmi.d/<motherboard>.yml`.
 # ToDo
 No Timeline is currently defined.
 
+## Get Current Fan Speed
+```shell
+ipmitool -c sensor | grep -Ei "^FAN|^MB-FAN|^BPN-FAN"
+```
+
 ## Docker Image
 In theory, it should be possible to run this as a Docker Container.
 
