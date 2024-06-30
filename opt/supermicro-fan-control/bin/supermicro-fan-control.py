@@ -449,8 +449,8 @@ def configure():
     log(f"This is needed because in some cases the Fan Speed is stuck, if already starting in Full Mode" , level="INFO")
 
     # IPMI tool command to set the fan control mode to Optimal
-    fan_speed_heavy_io = CONFIG["ipmi"]["fan_modes"]["optimal"]["registers"]
-    run_cmd(["ipmitool" , "raw"] + fan_speed_heavy_io)
+    fan_speed_optimal = CONFIG["ipmi"]["fan_modes"]["optimal"]["registers"]
+    run_cmd(["ipmitool" , "raw"] + fan_speed_optimal)
     time.sleep(2)
 
     # Echo
