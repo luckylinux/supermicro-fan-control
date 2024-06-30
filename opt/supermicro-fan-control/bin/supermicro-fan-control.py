@@ -233,35 +233,35 @@ def run_temperature_controller(label , id , current_temp , current_fan_speed):
 
     if current_temp > CONFIG[id]["max_temp"] and new_fan_speed < CONFIG["fan"]["max_speed"]:
         # Echo
-        log(f"Increasing Fan Speed since {label} Controller Temperature = {current_temp}°C is higher than the Maximum Setting = {CONFIG[id]['max_temp']}°C" , level="DEBUG")
+        log(f"{label} Temperature Controller: Increasing Fan Speed Reference since {label} Controller Temperature = {current_temp}°C is higher than the Maximum Setting = {CONFIG[id]['max_temp']}°C" , level="DEBUG")
 
         # Increase the fan speed by CONFIG["fan"]["inc_speed_step"]% to cool down the <id>
         new_fan_speed = min(new_fan_speed + CONFIG["fan"]["inc_speed_step"], CONFIG["fan"]["max_speed"])
 
         # Echo
-        log(f"New Fan Speed based on {label} Controller Temperature = {new_fan_speed}%" , level="DEBUG")
+        log(f"{label} Temperature Controller: New Fan Speed Reference based on {label} Controller Temperature: {new_fan_speed}%" , level="DEBUG")
 
     elif current_temp < CONFIG[id]["min_temp"] and new_fan_speed > CONFIG["fan"]["min_speed"]:
         # Echo
-        log(f"Decreasing Fan Speed since {label} Temperature = {current_temp}°C is lower than the Minimum Setting = {CONFIG[id]['min_temp']}°C" , level="DEBUG")
+        log(f"{label} Temperature Controller: Decreasing Fan Speed Reference since {label} Temperature = {current_temp}°C is lower than the Minimum Setting = {CONFIG[id]['min_temp']}°C" , level="DEBUG")
 
         # Decrease the fan speed by CONFIG["fan"]["dec_speed_step"]% if the temperature is below the minimum threshold
         new_fan_speed = max(new_fan_speed - CONFIG["fan"]["dec_speed_step"], CONFIG["fan"]["min_speed"])
 
         # Echo
-        log(f"New Fan Speed based on {label} Controller Temperature = {new_fan_speed}%" , level="DEBUG")
+        log(f"{label} Temperature Controller: New Fan Speed Reference based on {label} Controller Temperature: {new_fan_speed}%" , level="DEBUG")
     else:
         if new_fan_speed >= CONFIG["fan"]["max_speed"]:
             # Echo
-            log(f"Skipping Fan Speed Update for {label} Controller since Current Fan Speed {current_fan_speed} is already >= {CONFIG['fan']['max_speed']}°C" , level="DEBUG")
+            log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed} is already >= {CONFIG['fan']['max_speed']}°C" , level="DEBUG")
 
         elif new_fan_speed <= CONFIG["fan"]["min_speed"]:
             # Echo
-            log(f"Skipping Fan Speed Update for {label} Controller since Current Fan Speed {current_fan_speed} is already <= {CONFIG['fan']['min_speed']}°C" , level="DEBUG")
+            log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed} is already <= {CONFIG['fan']['min_speed']}°C" , level="DEBUG")
 
         elif current_temp >= CONFIG[id]['min_temp'] and current_temp <= CONFIG[id]['max_temp']:
             # Echo
-            log(f"Skipping Fan Speed Update for {label} Controller since {label} Temperature = {current_temp}°C is within Histeresis Range = [{CONFIG[id]['min_temp']}°C ... {CONFIG[id]['max_temp']}°C]" , level="DEBUG")
+            log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since {label} Temperature = {current_temp}°C is within Histeresis Range = [{CONFIG[id]['min_temp']}°C ... {CONFIG[id]['max_temp']}°C]" , level="DEBUG")
 
     # Return Result
     return new_fan_speed
@@ -342,7 +342,8 @@ def loop():
 
         # Get current HDD Temperatures
         hdd_temps_all = get_drives_temperatures(filterType = DiskType.HDD)
-        if hdd_temps_all is not None and len(hdd_temps_all) > 0:
+        hdd_count = len(hdd_temps_all)
+        if hdd_temps_all is not None and hdd_count > 0:
             hdd_temps_max = max(hdd_temps_all)
             log(f"Maximum HDD Temperature: {hdd_temps_max}°C" , level="INFO")
         else:
@@ -351,7 +352,8 @@ def loop():
 
         # Get current SSD Temperatures
         ssd_temps_all = get_drives_temperatures(filterType = DiskType.SSD)
-        if ssd_temps_all is not None and len(ssd_temps_all) > 0:
+        ssd_count = len(ssd_temps_all)
+        if ssd_temps_all is not None and ssd_count > 0:
             ssd_temps_max = max(ssd_temps_all)
             log(f"Maximum SSD Temperature: {ssd_temps_max}°C" , level="INFO")
         else:
@@ -360,7 +362,8 @@ def loop():
 
         # Get current NVME Temperatures
         nvme_temps_all = get_drives_temperatures(filterType = DiskType.NVME)
-        if nvme_temps_all is not None and len(nvme_temps_all) > 0:
+        nvme_count = len(nvme_temps_all)
+        if nvme_temps_all is not None and nvme_count > 0:
             nvme_temps_max = max(nvme_temps_all)
             log(f"Maximum NVME Temperature: {nvme_temps_max}°C" , level="INFO")
         else:
@@ -409,13 +412,16 @@ def loop():
         # Set Fan Speed
         if new_fan_speed != current_fan_speed:
             # Echo
-            log(f"Updating Fan Speed from {current_fan_speed}% to {new_fan_speed}%" , level="INFO")
+            log(f"Updating Fan Speed from {current_fan_speed}% to {new_fan_speed}%." , level="INFO")
 
             # Update
             set_fan_speed(new_fan_speed)
         else:
             # Echo
-            log(f"No Fan Speed Update required. Keeping Fan Speed to {current_fan_speed}%" , level="DEBUG")
+            log(f"No Fan Speed Update required. Keeping Fan Speed to {current_fan_speed}% but sending Reference Again." , level="DEBUG")
+
+            # Prevent e.g. (external) manual testing from "blocking" the Fan Speed to a Low Value in case Fan Speed is already at 100%
+            set_fan_speed(new_fan_speed)
 
         # Wait UPDATE_INTERVAL seconds before checking the temperature again
         #pprint.pprint(CONFIG)
@@ -424,9 +430,18 @@ def loop():
 
 
 def configure():
+    # Get Configuration Folder
+    SUPERMICRO_FAN_CONTROL_CONFIG_PATH = os.getenv("SUPERMICRO_FAN_CONTROL_CONFIG_PATH") 
+
+    if SUPERMICRO_FAN_CONTROL_CONFIG_PATH is None:
+        SUPERMICRO_FAN_CONTROL_CONFIG_PATH = "/etc/supermicro-fan-control/"
+
+    # Echo
+    log(f"Using Configuration Folder {SUPERMICRO_FAN_CONTROL_CONFIG_PATH}" , level="INFO")
+
     # Read General Configuration
-    read_config(f"/etc/supermicro-fan-control/settings.yaml.default")
-    read_config(f"/etc/supermicro-fan-control/settings.yaml")
+    read_config(f"{SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/settings.yaml.default")
+    read_config(f"{SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/settings.yaml")
 
     # Print Configuration
     #pprint.pprint(CONFIG)
@@ -437,8 +452,8 @@ def configure():
     motherboard = general['motherboard']
 
     # Read IPMI Configuration
-    read_config(f"/etc/supermicro-fan-control/ipmi.d/default.yaml")
-    read_config(f"/etc/supermicro-fan-control/ipmi.d/{motherboard}.yaml")
+    read_config(f"{SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/ipmi.d/default.yaml")
+    read_config(f"{SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/ipmi.d/{motherboard}.yaml")
 
     # Print Configuration
     #pprint.pprint(CONFIG)
@@ -462,8 +477,6 @@ def configure():
     run_cmd(["ipmitool" , "raw"] + fan_speed_full)
     time.sleep(2)
 
-    # Stop here for now
-    #sys.exit(0)
 
 # Main Method
 if __name__ == "__main__":

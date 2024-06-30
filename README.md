@@ -62,6 +62,10 @@ You however need to Manually setup everything else, including:
 - `systemd` Service
 - Configuration Files in `/etc/supermicro-fan-control`
 
+# Environment Configuration Variables
+The following Environment Configuration Variables can be set:
+- `SUPERMICRO_FAN_CONTROL_CONFIG_PATH`: where all the YML Configuration Files are located (defaults to `/etc/supermicro-fan-control`)
+
 # Enable the Beep Module for early Warnings
 UPDATE: this is now performed automatically by `setup.sh`.
 
