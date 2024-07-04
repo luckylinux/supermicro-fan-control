@@ -231,8 +231,18 @@ def isfloat(text):
 
 # Get the System Event Log(s) filtered
 def get_system_event_log_filtered(filter = ""):
-    # Get System Events according to Filter
-    system_event_log = subprocess.check_output(f"ipmitool -c sel elist | grep -E '{filter}'" , shell=True).decode()
+    # Check if any Events occurred at all
+    has_events = subprocess.check_output(f"ipmitool -c sel | grep -i 'Entries' | sed -E 's|^Entries\s*?:\s*?([0-9]*)$|\1|'" , shell=True).decode()
+
+    # Initialize as None by Default
+    system_event_log = None
+
+    # Only get System Event Log if there are Events registered, otherwise we'll have Errors later
+    if has_events is not None:
+        if has_events.isnumeric():
+            if has_events > 0:
+                # Get System Events according to Filter
+                system_event_log = subprocess.check_output(f"ipmitool -c sel elist | grep -E '{filter}'" , shell=True).decode()
 
     # Return Output
     return system_event_log
@@ -305,6 +315,10 @@ def get_system_event_log(log_all = True , log_fans = True , log_temperatures = T
         # Remind User to clear System Event Log
         log(f"System Event Log: Please Fix the Problem then clear the System Event Log !" , level="INFO")
 
+    # If no Entries exist in the System Event Log
+    else:
+        # Echo
+        log(f"System Event Log: no Entries exist in the System Event Log." , level="DEBUG")
 
 # Get the current Fan Speed(s)
 def get_fan_speeds():
