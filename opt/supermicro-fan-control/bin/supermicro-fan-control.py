@@ -486,8 +486,8 @@ def configure():
     log(f"Using Configuration Folder {SUPERMICRO_FAN_CONTROL_CONFIG_PATH}" , level="INFO")
 
     # Read General Configuration
-    read_config(f"{SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/settings.yaml.default")
-    read_config(f"{SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/settings.yaml")
+    read_config(f"{SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/settings.yml.default")
+    read_config(f"{SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/settings.yml")
 
     # Print Configuration
     #pprint.pprint(CONFIG)
@@ -498,8 +498,8 @@ def configure():
     motherboard = general['motherboard']
 
     # Read IPMI Configuration
-    read_config(f"{SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/ipmi.d/default.yaml")
-    read_config(f"{SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/ipmi.d/{motherboard}.yaml")
+    read_config(f"{SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/ipmi.d/default.yml")
+    read_config(f"{SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/ipmi.d/{motherboard}.yml")
 
     # Print Configuration
     #pprint.pprint(CONFIG)

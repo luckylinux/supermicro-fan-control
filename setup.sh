@@ -7,8 +7,11 @@ if [[ ! -v toolpath ]]; then scriptpath=$(cd "$( dirname "${BASH_SOURCE[0]}" )" 
 # Load functions
 source ${toolpath}/functions.sh
 
+# Define Paths
+SUPERMICRO_FAN_CONTROL_CONFIG_PATH="/etc/supermicro-fan-control"
+
 # Create Folders
-mkdir -p /etc/supermicro-fan-control
+mkdir -p "${SUPERMICRO_FAN_CONTROL_CONFIG_PATH}"
 mkdir -p /opt/supermicro-fan-control
 
 # Create TMP Folder (only needed for Binary Files built using Nuitka --onefile)
@@ -23,6 +26,31 @@ else
    # Do NOT rebuild initramfs
    REBUILD_INITRD="no"
 fi
+
+# Upgrade existing Files if Any
+# !! The new Extension used is .yml instead of .yaml !!
+mapfile -t oldconfigfiles < <( find "${SUPERMICRO_FAN_CONTROL_CONFIG_PATH}" -iname *.yaml* )
+
+for oldconfigfile in "${oldconfigfiles[@]}"
+do
+   # Rename Extension using BASH
+   #newconfigfile=${oldconfigfile/".yaml"/".yml"}
+
+   # Rename Extension using SED
+   # At the end of the File
+   newconfigfile=$(echo "${oldconfigfile}" | sed -E "s|(.*?)\.yaml$|\1.yml|g")
+
+   # In the middle of the File
+   newconfigfile=$(echo "${newconfigfile}" | sed -E "s|(.*?)\.yaml\.(.*?)$|\1.yml.\2|g")
+
+   # Echo
+   echo "Renaming ${oldconfigfile} to ${newconfigfile}"
+
+   # Perform Operation
+   mv "${oldconfigfile}" "${newconfigfile}"
+done
+
+exit 9
 
 # Setup Kernel Module loading for BEEP
 echo "pcspkr" > /etc/modules-load.d/beep.conf
@@ -83,7 +111,7 @@ cp -r opt/supermicro-fan-control/* /opt/supermicro-fan-control/
 chmod 755 /opt/supermicro-fan-control/bin/supermicro-fan-control.py
 
 # Install Example Settings
-cp -r etc/supermicro-fan-control/* /etc/supermicro-fan-control/
+cp -r etc/supermicro-fan-control/* "${SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/"
 
 # Install Systemd Service
 cp etc/systemd/system/supermicro-fan-control.service /etc/systemd/system/supermicro-fan-control.service

@@ -1,0 +1,53 @@
+ipmi:
+    fan_modes:
+      standard:
+        registers:
+          - "0x30"
+          - "0x45"
+          - "0x01"
+          - "0x00"
+      full:
+        registers:
+          - "0x30"
+          - "0x45"
+          - "0x01"
+          - "0x01"
+      optimal:
+        registers:
+          - "0x30"
+          - "0x45"
+          - "0x01"
+          - "0x02"
+      heavy_io:
+        registers:
+          - "0x30"
+          - "0x45"
+          - "0x01"
+          - "0x03"
+
+    fan_zones:
+      - id: "0"
+        name: "Zone 0"
+        label: "CPU_Zone"
+        description: "CPU Zone"
+        registers:
+          - "0x30"
+          - "0x70"
+          - "0x66"
+          - "0x01"
+          - "0x00"
+        maximum_speed_hex: 0x64
+        minimum_speed_hex: 0x00
+
+      - id: "1"
+        name: "Zone 1"
+        label: "Peripherals_Zone"
+        description: "Peripherals Zone"
+        registers:
+          - "0x30"
+          - "0x70"
+          - "0x66"
+          - "0x01"
+          - "0x01"
+        maximum_speed_hex: 0x64
+        minimum_speed_hex: 0x00

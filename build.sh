@@ -20,10 +20,10 @@ mkdir -p tmp
 mkdir -p dist-onefile
 
 # Copy Sources
-cp ${toolpath}/opt/supermicro-fan-control/bin/supermicro-fan-control.py ${toolpath}/tmp/supermicro-fan-control.py
+cp "${toolpath}/opt/supermicro-fan-control/bin/supermicro-fan-control.py" "${toolpath}/tmp/supermicro-fan-control.py"
 
 # Change Directory to tmp Folder
-cd ${toolpath}/tmp || exit
+cd "${toolpath}/tmp" || exit
 
 # Build using Nuitka
 python -m nuitka --standalone --follow-imports --onefile supermicro-fan-control.py
@@ -34,12 +34,11 @@ python -m nuitka --standalone --follow-imports --onefile supermicro-fan-control.
 #python -m nuitka --standalone --follow-imports --onefile --onefile-tempdir-spec=/opt/supermicro-fan-control/tmp supermicro-fan-control.py
 
 # Move into the Respective Folders
-mv supermicro-fan-control.dist/* ${toolpath}/dist/
-mv supermicro-fan-control.build/* ${toolpath}/build/
-mv supermicro-fan-control.bin ${toolpath}/dist-onefile/
+mv supermicro-fan-control.dist/* "${toolpath}/dist/"
+mv supermicro-fan-control.build/* "${toolpath}/build/"
+mv supermicro-fan-control.bin "${toolpath}/dist-onefile/"
 
 # Remove Temporary Folders
-rm -rf supermicro-fan-control.dist
-rm -rf supermicro-fan-control.build
-rm -rf supermicro-fan-control.onefile-build
-
+rm -rf "supermicro-fan-control.dist"
+rm -rf "supermicro-fan-control.build"
+rm -rf "supermicro-fan-control.onefile-build"
