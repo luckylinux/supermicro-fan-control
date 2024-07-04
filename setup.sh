@@ -50,10 +50,8 @@ do
    mv "${oldconfigfile}" "${newconfigfile}"
 done
 
-exit 9
-
 # Setup Kernel Module loading for BEEP
-echo "pcspkr" > /etc/modules-load.d/beep.conf
+echo "pcspkr" > "/etc/modules-load.d/beep.conf"
 
 # Revert "ugly and loud noise, getting on everyone's nerves; this should be done by a nice pulseaudio bing (Ubuntu: #77010)"
 # This was apparently introduced by Ubuntu, but I believe it's better to know than NOT to know, when we have a critical issue !
@@ -83,10 +81,10 @@ then
 fi
 
 # Create venv
-python3 -m venv /opt/supermicro-fan-control/venv
+python3 -m venv "/opt/supermicro-fan-control/venv"
 
 # Activate venv
-source /opt/supermicro-fan-control/venv/bin/activate
+source "/opt/supermicro-fan-control/venv/bin/activate"
 
 # Enable Development Tools
 if [[ "${ENABLE_DEVEL}" == "yes" ]]
