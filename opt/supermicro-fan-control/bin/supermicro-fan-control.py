@@ -144,48 +144,7 @@ def merge_config(config_a , config_b):
     # Display Updated Configuration
     print(config)
 
-    #pprint.pprint(config)
-
-    #if config is not None:
-    #    # Echo
-    #    log(f"Merging Configuration" , level="DEBUG")
-
-        # Iterate over Existing Config
-        #for key, value in config.items():
-        #    # Print Key
-        #    print(key)
-
-            # If the key also exists in config_b, then replace value
-            # !! THIS DOES NOT WORK CORRECTLY !!
-            # !! ALL FIELDS in config_a that do NOT exist in config_b will be lost !!
-            # !! NEEDS TO BE FIXED LATER WITH AN ITERATIVE APPROACH !!
-            #if key in config_b:
-            #    # Echo
-            #   log(f"Override Key {key} in config ({value} -> {config_b[key]})" , level="DEBUG")
-
-            #    # Override
-            #    config[key] = config_b[key]
-
-    #    log(f"Updating config_a with config_b" , level="WARNING")
-    #    config.update(config_b)
-
-    #    print(config)
-
-        # Add new Keys that were only in config_b
-        #for key, value in config_b.items():
-        #    # Echo
-        #    log(f"Add non-existing Key {key} in config ({config_b[key]})" , level="DEBUG")
-
-        #    # Set Key
-        #    config[key] = value
-
-    #else:
-    #    # Simply use config_b
-    #    log(f"config_a was empty/none: config_b will override everything" , level="WARNING")
-    #    config = config_b.copy()
-
     # Return Result
-    #return config.copy()
     return config
 
 # Read Configuration File
