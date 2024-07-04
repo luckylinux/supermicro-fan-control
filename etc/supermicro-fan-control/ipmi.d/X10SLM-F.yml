@@ -36,8 +36,8 @@ ipmi:
           - "0x66"
           - "0x01"
           - "0x00"
-        maximum_speed_hex: 0x64
-        minimum_speed_hex: 0x00
+        max_speed_hex: "0x64"
+        min_speed_hex: "0x00"
 
       - id: "1"
         name: "Zone 1"
@@ -49,5 +49,5 @@ ipmi:
           - "0x66"
           - "0x01"
           - "0x01"
-        maximum_speed_hex: 0x64
-        minimum_speed_hex: 0x00
+        max_speed_hex: "0x64"
+        min_speed_hex: "0x00"

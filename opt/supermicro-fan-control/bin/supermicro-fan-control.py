@@ -33,6 +33,7 @@ from subprocess import Popen , PIPE, run
 CONFIG = dict()
 
 # Initialize minimum Fan Speed to 50%
+# Will be overridden by CONFIG["fan"]["min_speed"] in case that Value is Higher than this
 current_fan_speed = 50               # [%] Current Fan Speed
 
 # Log
@@ -330,33 +331,53 @@ def get_fan_speeds():
 
 # Set the fan speed
 def set_fan_speed(speed):
+    # speed: integer between 0 and 100 (possibly further limited to CONFIG["fan"]["min_speed"] and CONFIG["fan"]["max_speed"])
+    
+    # Allow to update Global Variables
     global current_fan_speed
+
+    # Set the Current Fan Speed (Reference) to the speed Input we receive
     current_fan_speed = speed
 
     # Convert the speed percentage to a hex value
-    hex_speed = format(speed * 255 // 100, "02x")
+    # !! The 255/100 does NOT seem to be correct, at least on some Motherboards !!
+    # hex_speed = format(speed * 255 // 100, "02x")
 
-    log(f"Fan Controller: Setting Hex Speed Value to 0x{hex_speed}" , "INFO")
+    # Convert the speed percentage to a hex value
+    # Use max_speed_hex and min_speed_hex from CONFIG
 
-    # Get Fan Zones Settings
-    fan_zone_0 = CONFIG["ipmi"]["fan_zones"][0]["registers"]
-    fan_zone_1 = CONFIG["ipmi"]["fan_zones"][1]["registers"]
+    # For each Fan Zones Settings
+    for fan_zone in CONFIG["ipmi"]["fan_zones"]:
+        # Extract Parameters
+        fan_zone_id = fan_zone["id"]
+        fan_zone_name = fan_zone["name"]
+        fan_zone_description = fan_zone["description"]
+        fan_zone_registers = fan_zone["registers"]
+        fan_zone_max_speed_hex = fan_zone["max_speed_hex"]
+        fan_zone_min_speed_hex = fan_zone["min_speed_hex"]
+        
+        # Convert Hexadecimal Max / Min Zone Fan Speed to Decimal
+        fan_zone_max_speed_dec = int(fan_zone_max_speed_hex , 16)
+        fan_zone_min_speed_dec = int(fan_zone_min_speed_hex , 16)
 
-    # Set the Fan Speed for Zone 0
-    #os.system(f"ipmitool raw {' '.join(fan_zone_0)} 0x{hex_speed}")
-    run_cmd(["ipmitool" , "raw"] + fan_zone_0 + [f"0x{hex_speed}"])
-    time.sleep(2)
+        # Scale according to 0% - 100%
+        fan_zone_speed_dec = fan_zone_min_speed_dec + (fan_zone_max_speed_dec - fan_zone_min_speed_dec) / (100-0) * (speed - fan_zone_min_speed_dec)
 
-    # Set the Fan Speed for Zone 1
-    #os.system(f"ipmitool raw {' '.join(fan_zone_1)} 0x{hex_speed}")
-    run_cmd(["ipmitool" , "raw"] + fan_zone_1 + [f"0x{hex_speed}"])
-    time.sleep(2)
+        # Convert to Integer
+        fan_zone_speed_dec = int(fan_zone_speed_dec)
 
-    # Log the Fan Speed change to syslog
-    log(f"Fan Controller: Fan speed has been adjusted to {speed}% (Hex Value 0x{hex_speed})" , level="INFO")
+        # Calculate HEX Speed
+        fan_zone_speed_hex = format(fan_zone_speed_dec , "02x")
 
-    # Print the Fan Speed change to console
-    #log(f"Fan Controller: Fan speed adjusted to {speed}% - Hex: 0x{hex_speed}" , level="INFO")
+        # Echo
+        log(f"Fan Controller: Setting Fan Zone {fan_zone_id} ({fan_zone_description}) to {fan_zone_speed_dec}% (Hex Speed Value to 0x{fan_zone_speed_hex})" , "INFO")
+
+        # Set the Fan Speed for Zone
+        run_cmd(["ipmitool" , "raw"] + fan_zone_registers + [f"0x{fan_zone_speed_hex}"])
+        time.sleep(2)
+
+        # Log the Fan Speed change to syslog
+        log(f"Fan Controller: Fan Zone {fan_zone_id} ({fan_zone_description}) Speed has been adjusted to {fan_zone_speed_dec}% (Hex Value 0x{fan_zone_speed_hex})" , level="INFO")
 
 
 # Run Temperature Controller
@@ -622,7 +643,6 @@ def configure():
 
     # IPMI tool command to set the fan control mode to manual (Full)
     fan_speed_full = CONFIG["ipmi"]["fan_modes"]["full"]["registers"]
-    #os.system(f"ipmitool raw {' '.join(fan_speed_full)}")
     run_cmd(["ipmitool" , "raw"] + fan_speed_full)
     time.sleep(2)
 
@@ -645,6 +665,9 @@ if __name__ == "__main__":
 
     # Configure
     configure()
+
+    # Override the initial Setting for current_fan_speed in case CONFIG["fan"]["min_speed"] is higher
+    current_fan_speed = max(current_fan_speed , CONFIG["fan"]["min_speed"])
 
     # Set initial minimum fan speed
     log(f"Set Initial Fan Speed to {current_fan_speed}%" , "INFO")
