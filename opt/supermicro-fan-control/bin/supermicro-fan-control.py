@@ -20,6 +20,9 @@ import pprint
 # Python json Module
 import json
 
+# Python datetime Module
+from datetime import datetime
+
 # Python DiskInfo Module
 from diskinfo import Disk, DiskInfo, DiskType
 
@@ -83,6 +86,9 @@ def merge_config(config_a , config_b):
             #print(key)
 
             # If the key also exists in config_b, then replace value
+            # !! THIS DOES NOT WORK CORRECTLY !!
+            # !! ALL FIELDS in config_a that do NOT exist in config_b will be lost !!
+            # !! NEEDS TO BE FIXED LATER WITH AN ITERATIVE APPROACH !!
             if key in config_b:
                 # Echo
                 log(f"Override Key {key} in config ({value} -> {config_b[key]})" , level="DEBUG")
@@ -204,6 +210,83 @@ def isfloat(text):
         return True
     except ValueError:
         return False
+
+# Get the System Event Log(s) filtered
+def get_system_event_log_filtered(filter = ""):
+    # Get System Events according to Filter
+    system_event_log = subprocess.check_output(f"ipmitool -c sel elist | grep -E '{filter}'" , shell=True).decode()
+
+    # Return Output
+    return system_event_log
+
+# Get the System Event Log(s)
+def get_system_event_log(log_all = True , log_fans = True , log_temperatures = True):
+    # Declare Variables
+    system_event_log = ""
+    system_event_types = ""
+    system_event_filter = ""
+
+    if log_all:
+        # Get All System Events
+
+        # Define Type & Filter
+        system_event_type = "ALL"
+        system_event_filter = ""
+
+    if log_fans:
+        # Get Fan System Events
+
+        # Define Type & Filter
+        system_event_type = "FAN"
+        system_event_filter = ""
+
+    if log_temperatures:
+        # Get Temperature System Events
+
+        # Define Type & Filter
+        system_event_type = "TEMPERATURE"
+        system_event_filter = ""
+
+    # Get System Events
+    system_event_log = get_system_event_log_filtered(filter = system_event_filter)
+
+    # Process Results
+
+    # If anything was returned
+    if system_event_log:
+        # Split Event Log by Line
+        reader = csv.reader(system_event_log.split('\n'), delimiter=',' , quoting=csv.QUOTE_ALL)
+
+        
+        #reader = system_event_log.split('\n')
+
+        # Process each Line Individually
+        for row in reader:
+            # If Array is NOT empty
+            if row is not None and len(row) > 0:
+                # Format: <id>,<date>,<time>,<component>,<threshold>,<action>,<message>
+                # <time> obtained via `ipmitool` is already with the correct Time Zone. On the IPMI Web Interface, <time> **might** be UTC or a different Time Zone
+                
+                # Extract Values
+                event_id = row[0]
+                event_date_raw = row[1]
+                event_time_raw = row[2]
+                event_component = row[3]
+                event_threshold = row[4]
+                event_action = row[5]
+                event_message = row[6]
+
+                # Format Date
+                #datetime.datetime.strptime("2013-1-25", '%Y-%m-%d').strftime('%m/%d/%y')
+                event_date = event_date_raw
+                event_time = event_time_raw
+
+                # Log Event
+                log(f"System Event Log: [{event_component}] Event ID {event_id} on {event_date} at {event_time}: {event_message} (Threshold: {event_threshold} , Action: {event_action})" , level="WARNING")
+        
+        # Remind User to clear System Event Log
+        log(f"System Event Log: Please Fix the Problem then clear the System Event Log !" , level="INFO")
+
 
 # Get the current Fan Speed(s)
 def get_fan_speeds():
@@ -469,6 +552,9 @@ def loop():
         # Get and Log Current Fan Speed
         get_fan_speeds()
 
+        # Get and Log IPMI System Event Log
+        get_system_event_log()
+
         # Wait UPDATE_INTERVAL seconds before checking the temperature again
         #pprint.pprint(CONFIG)
         time.sleep(CONFIG["general"]["update_interval"])
@@ -522,6 +608,17 @@ def configure():
     #os.system(f"ipmitool raw {' '.join(fan_speed_full)}")
     run_cmd(["ipmitool" , "raw"] + fan_speed_full)
     time.sleep(2)
+
+    # Set the Correct Environment Variables
+    for name in CONFIG["general"]["environment"]:
+        # Get Value
+        value = str(CONFIG["general"]["environment"][name])
+
+        # Echo
+        log(f"Environment: Set Environment Parameter {name} to {value}" , level="INFO")
+
+        # Set the Variable
+        os.environ[name] = value
 
 
 # Main Method
