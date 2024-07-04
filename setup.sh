@@ -80,6 +80,7 @@ then
           # Other
           echo "!! YOU MUST MANUALLY REBUILD INITRD. NEITHER update-initramfs NEITHER dracut have been detected !!"
        fi
+   fi
 fi
 
 # Create venv
