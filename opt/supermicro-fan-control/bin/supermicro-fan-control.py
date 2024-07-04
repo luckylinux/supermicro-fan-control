@@ -68,67 +68,125 @@ def filter_drive(path):
     # Return Result
     return drivepath
 
+
+# https://stackoverflow.com/questions/7204805/deep-merge-dictionaries-of-dictionaries-in-python
+def deep_merge_lists(original, incoming):
+    """
+    Deep merge two lists. Modifies original.
+    Recursively call deep merge on each correlated element of list. 
+    If item type in both elements are
+     a. dict: Call deep_merge_dicts on both values.
+     b. list: Recursively call deep_merge_lists on both values.
+     c. any other type: Value is overridden.
+     d. conflicting types: Value is overridden.
+
+    If length of incoming list is more that of original then extra values are appended.
+    """
+    common_length = min(len(original), len(incoming))
+    for idx in range(common_length):
+        if isinstance(original[idx], dict) and isinstance(incoming[idx], dict):
+            deep_merge_dicts(original[idx], incoming[idx])
+
+        elif isinstance(original[idx], list) and isinstance(incoming[idx], list):
+            deep_merge_lists(original[idx], incoming[idx])
+
+        else:
+            original[idx] = incoming[idx]
+
+    for idx in range(common_length, len(incoming)):
+        original.append(incoming[idx])
+
+# https://stackoverflow.com/questions/7204805/deep-merge-dictionaries-of-dictionaries-in-python
+def deep_merge_dicts(original, incoming):
+    """
+    Deep merge two dictionaries. Modifies original.
+    For key conflicts if both values are:
+     a. dict: Recursively call deep_merge_dicts on both values.
+     b. list: Call deep_merge_lists on both values.
+     c. any other type: Value is overridden.
+     d. conflicting types: Value is overridden.
+
+    """
+    for key in incoming:
+        if key in original:
+            if isinstance(original[key], dict) and isinstance(incoming[key], dict):
+                deep_merge_dicts(original[key], incoming[key])
+
+            elif isinstance(original[key], list) and isinstance(incoming[key], list):
+                deep_merge_lists(original[key], incoming[key])
+
+            else:
+                original[key] = incoming[key]
+        else:
+            original[key] = incoming[key]
+
+
 # Merge Configuration
 # If a Key is defined in both config_a and config_b, the Value of config_b will override the Value of config_a
 def merge_config(config_a , config_b):
 
     # Initialize config as config_a
     config = config_a.copy()
+
+    # Echo
+    log(f"Merging Configuration" , level="DEBUG")
+    log(f"Previous Configuration:" , level="DEBUG")
+
+    # Display Current Configuration
+    print(config)
+
+    # Echo
+    log(f"Updated Configuration:" , level="DEBUG")
+
+    # Deep Merge Configuration
+    deep_merge_dicts(config , config_b)
+
+    # Display Updated Configuration
+    print(config)
+
     #pprint.pprint(config)
 
-    if config is not None:
-        # Echo
-        log(f"Merging Configuration" , level="DEBUG")
+    #if config is not None:
+    #    # Echo
+    #    log(f"Merging Configuration" , level="DEBUG")
 
         # Iterate over Existing Config
-        for key, value in config.items():
-            # Print Key
-            #print(key)
+        #for key, value in config.items():
+        #    # Print Key
+        #    print(key)
 
             # If the key also exists in config_b, then replace value
             # !! THIS DOES NOT WORK CORRECTLY !!
             # !! ALL FIELDS in config_a that do NOT exist in config_b will be lost !!
             # !! NEEDS TO BE FIXED LATER WITH AN ITERATIVE APPROACH !!
-            if key in config_b:
-                # Echo
-                log(f"Override Key {key} in config ({value} -> {config_b[key]})" , level="DEBUG")
+            #if key in config_b:
+            #    # Echo
+            #   log(f"Override Key {key} in config ({value} -> {config_b[key]})" , level="DEBUG")
 
-                # Override
-                config[key] = config_b[key]
+            #    # Override
+            #    config[key] = config_b[key]
 
-            # Get Data of the current Iteration
-            #currentdata = data[l]
+    #    log(f"Updating config_a with config_b" , level="WARNING")
+    #    config.update(config_b)
 
-            # Iterate over currentdata
-            #for item in currentdata:
-            #print(item)
-
-            #currentimages = currentdata[item]["images"]
-            #for im in currentimages:
-            #   # Debug
-            #   print(im)
-            #
-            #   # Get Tags associated with the current Image
-            #   tags = currentimages[im]
-            #
-            #   # Append to the list
-            #   images.append(image)
+    #    print(config)
 
         # Add new Keys that were only in config_b
-        for key, value in config_b.items():
-            # Echo
-            log(f"Add non-existing Key {key} in config ({config_b[key]})" , level="DEBUG")
+        #for key, value in config_b.items():
+        #    # Echo
+        #    log(f"Add non-existing Key {key} in config ({config_b[key]})" , level="DEBUG")
 
-            # Set Key
-            config[key] = value
+        #    # Set Key
+        #    config[key] = value
 
-    else:
-        # Simply use config_b
-        log(f"config_a was empty/none: config_b will override everything" , level="WARNING")
-        config = config_b.copy()
+    #else:
+    #    # Simply use config_b
+    #    log(f"config_a was empty/none: config_b will override everything" , level="WARNING")
+    #    config = config_b.copy()
 
     # Return Result
-    return config.copy()
+    #return config.copy()
+    return config
 
 # Read Configuration File
 def read_config(filepath):
