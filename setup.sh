@@ -133,5 +133,5 @@ then
     systemctl status --no-pager supermicro-fan-control.service
 
     # Show and Follow Logs
-    journalctl -f -xeu supermicro-fan-control.service
+    journalctl -f --all -xeu supermicro-fan-control.service
 fi

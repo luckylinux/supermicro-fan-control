@@ -26,8 +26,8 @@ from datetime import datetime
 # Python DiskInfo Module
 from diskinfo import Disk, DiskInfo, DiskType
 
-# Subprocess Python Module
-from subprocess import Popen , PIPE, run
+# Import Custom Command Library
+from modules.Command import Command
 
 # Define Configuration Dictionary
 CONFIG = dict()
@@ -37,7 +37,7 @@ CONFIG = dict()
 current_fan_speed = 50               # [%] Current Fan Speed
 
 # Log
-def log(message , level="INFO"):
+def log(message , level="INFO" , indent=1):
     # Echo
     print(f"[{level}] {message}")
 
@@ -229,20 +229,60 @@ def isfloat(text):
     except ValueError:
         return False
 
+# Check if string is int
+def isint(text):
+    try:
+        int(text)
+        return True
+    except ValueError:
+        return False
+
 # Get the System Event Log(s) filtered
 def get_system_event_log_filtered(filter = ""):
     # Check if any Events occurred at all
-    has_events = subprocess.check_output(f"ipmitool -c sel | grep -i 'Entries' | sed -E 's|^Entries\s*?:\s*?([0-9]*)$|\1|'" , shell=True).decode()
-
+    #has_events = subprocess.check_output(f"ipmitool -c sel | grep -i 'Entries' | sed -E 's|^Entries\\s*?:\\s*?([0-9]*)$|\\1|'" , shell=True).decode()
+    #has_events = run_cmd(["ipmitool", "-c" , "sel" , "|" , "grep" , "-i" , "'Entries'" , "|" , "sed" , "-E" , "'s|^Entries\\s*?:\\s*?([0-9]*)$|\\1|'"] , check_return_code=False , return_result=True)
+    has_events = run_cmd_pipes([["ipmitool" , "-c" , "sel"] , ["grep" , "-i" , "Entries"] , ["sed" , "-E" , "'s|^Entries\\s*?:\\s*?([0-9]*)$|\\1|'"]])
+   
     # Initialize as None by Default
     system_event_log = None
 
+    # Echo
+    log(f"System Event Log: check if System had any Events Logged" , level="DEBUG")
+
     # Only get System Event Log if there are Events registered, otherwise we'll have Errors later
-    if has_events is not None:
-        if has_events.isnumeric():
-            if has_events > 0:
+    if has_events is not None and len(has_events) > 0:
+        # If a multi-line Output is returned, just grab the first Line
+        has_events_split = has_events.split('\n')
+        if isinstance(has_events_split , list):
+            events = has_events_split[0]
+        else:
+            events = has_events_split
+
+        # Echo
+        log(f"System Event Log: {events} (RAW) Events have been Logged" , level="DEBUG")
+
+        if isint(events):
+            # Get Number of Event
+            Nevents = int(events)
+
+            if Nevents > 0:
+                # Echo
+                log(f"System Event Log: {Nevents} (Numeric) Events have been Logged" , level="DEBUG")
+
                 # Get System Events according to Filter
-                system_event_log = subprocess.check_output(f"ipmitool -c sel elist | grep -E '{filter}'" , shell=True).decode()
+                #system_event_log = subprocess.run(f"ipmitool -c sel elist | grep -Ei '{filter}'" , shell=True).decode()
+                system_event_log = run_cmd(["ipmitool" , "-c" , "sel" , "elist" , "|" , "grep" , "-Ei" , "'{filter}'"] , check_return_code=False , return_result=True)
+            else:
+                # Echo
+                log(f"System Event Log: Invalid Response Received (zero-Length) -> {events}" , level="DEBUG")
+        else:
+            # Echo
+            log(f"System Event Log: Invalid Response Received (non-Integer) -> {events}" , level="DEBUG")
+
+    else:
+        # Echo
+        log(f"System Event Log: Command returned None or Zero-Length" , level="DEBUG")
 
     # Return Output
     return system_event_log
@@ -266,14 +306,14 @@ def get_system_event_log(log_all = True , log_fans = True , log_temperatures = T
 
         # Define Type & Filter
         system_event_type = "FAN"
-        system_event_filter = ""
+        system_event_filter = "FAN"
 
     if log_temperatures:
         # Get Temperature System Events
 
         # Define Type & Filter
         system_event_type = "TEMPERATURE"
-        system_event_filter = ""
+        system_event_filter = "TEMP"
 
     # Get System Events
     system_event_log = get_system_event_log_filtered(filter = system_event_filter)
@@ -476,15 +516,15 @@ def run_temperature_protection(label , id , current_temp):
         # Echo
         log(f"{label} OverTemperature Protection: No Devices of Type {label} are installed. No Action will be performed for {label} OverTemperature Protection.")
 
-# Run Command
+# Run Command (simple, without Pipes)
 # To be implemented in the future in Order to Detect Errors returned by e.g. ipmitool
-def run_cmd(command):
+def run_cmd(command , return_result = False , check_return_code = True):
     # Echo Command
     log(f"Running Command: {' '.join([str(item) for item in command])}" , level="DEBUG")
     log(f"Command Array: {command}" , level="DEBUG")
 
     # Run Command
-    result_cmd = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True , text=True)
+    result_cmd = subprocess.run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True , text=True)
 
     if result_cmd.returncode != 0:
         text_cmd = result_cmd.stderr.rsplit("\n")
@@ -493,6 +533,113 @@ def run_cmd(command):
     else:
         text_cmd = result_cmd.stdout.rsplit("\n")
 
+    # Return result
+    if return_result:
+        return text_cmd
+
+# Run Command (complex, with Pipes)
+# To be implemented in the future in Order to Detect Errors returned by e.g. ipmitool
+def run_cmd_pipes(command , return_result = False , check_return_code = True , debug_output = False):
+    # Encapsulate everything in an external List if it's not already the Case
+    if not isinstance(command[0] , list):
+        new_command = [command]
+    else:
+        new_command = command
+
+    rows = len(new_command)
+    cols = len(new_command[0])
+
+    trows = type(new_command)
+    tcols = type(new_command[0])
+    Npipes = len(new_command)
+
+    #print(f"Array Dimension: {rows} Rows x {cols} Columns")
+    #print(f"Types: {trows} (Rows) - {tcols} (Cols)")
+
+    # Build Command String
+    running_cmd_text = ""
+    for p in range(Npipes):
+        # String of each Pipe Command
+        pipe_cmd_text = ' '.join([str(item) for item in new_command[p]])
+
+        # Join into a single String Command
+        if running_cmd_text == "":
+            running_cmd_text = pipe_cmd_text
+        else:
+            running_cmd_text = " | ".join([running_cmd_text , pipe_cmd_text])
+
+    # Echo Overall Command
+    log(f"Running Command (Complete String): {running_cmd_text}" , level="DEBUG")
+    log(f"Running Command (Complete Array): {new_command}" , level="DEBUG")
+
+    # Initialize the Proc Lists
+    pobject = [None] * Npipes
+    pstdout = [None] * Npipes
+    pstderr = [None] * Npipes
+    preturncode = [None] * Npipes
+
+    # Echo
+    log(f"Processing Command Pipe: {new_command[0]}" , level="DEBUG" , indent=1)
+
+    # Execute the first Command
+    pobject[0] = subprocess.Popen(' '.join(new_command[0]) , shell=True , stdin=subprocess.PIPE , stdout=subprocess.PIPE , stderr=subprocess.PIPE)
+    #proc[0] = subprocess.run(new_command[0] , stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True , text=True)
+
+    # Store results
+    pstdout[0] , pstderr[0] = pobject[0].communicate()
+
+    # Save Return Code
+    preturncode[0] = pobject[0].wait()
+
+    # Echo
+    print(pstdout[0].decode())
+    print(pstderr[0].decode())
+    
+
+    # Execute all Subsequent Pipes
+    if Npipes > 1:
+        for p in range(1 , Npipes , 1):
+            # Echo
+            log(f"Processing Command Pipe: {new_command[p]}" , level="DEBUG" , indent=1)
+
+            # Get Result for the Current Pipe
+            #proc[p] = subprocess.Popen(new_command[p], stdin=proc[p-1].stdout,
+            #                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # Allow proc[p-1] to receive a SIGPIPE if proc[p] exits.
+            #proc[p-1].stdout.close()
+            #out, err = proc[p].communicate()
+
+            # Just use Run
+            #proc[p] = subprocess.run(new_command[p] , input=proc[p-1].stdout , stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True , text=True)
+
+            # Use Pipe
+            pobject[p] = subprocess.Popen(' '.join(new_command[p]) , shell=True , stdin=subprocess.PIPE , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            # Provide Input Data
+
+            # Fetch Result
+            pstdout[p] , pstderr[p] = pobject[p].communicate(input=pstdout[p-1])
+
+            # Save Return Code
+            preturncode[p] = pobject[p].wait()
+
+            print(pstdout[p].decode())
+            print(pstderr[p].decode())
+
+    # Get Final Result
+    #result_cmd = pstdout[-1]
+
+    # Check if any Return Code is non-Zero
+    #if any(preturncode):
+    #    text_cmd = pstdout[-1].rsplit("\n")
+    #    log(f"Command exited with a non-Zero Error Code" , level="ERROR")
+    #    log(f"{pstderr[-1]}" , level="ERROR")
+    #else:
+    #    text_cmd = pstdout[-1].rsplit("\n")
+
+    # Return result
+    if return_result:
+        return text_cmd
 
 # Loop Method
 # Infinite Loop
@@ -687,5 +834,8 @@ if __name__ == "__main__":
     log(f"Set Initial Fan Speed to {current_fan_speed}%" , "INFO")
     set_fan_speed(current_fan_speed)
 
+    # Testing
+    get_system_event_log()
+
     # Run Control Loop
-    loop()
+    #loop()
