@@ -20,12 +20,12 @@ cpu:
     shutdown_temp: 95
 
 # Generic Drive
-# (NOT used since currently different Behaviors are configured for HDD/SSD/NVME)
+# (!! will override more loose Requirements from hdd/sdd/nvme !!)
 drive:
-    max_temp: 37
-    min_temp: 32
-    warning_temp: 50
-    shutdown_temp: 55
+    max_temp: 60
+    min_temp: 40
+    warning_temp: 70
+    shutdown_temp: 80
 
 # HDD Drive
 hdd:

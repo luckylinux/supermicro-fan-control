@@ -125,21 +125,19 @@ def merge_config(config_a , config_b):
     # Initialize config as config_a
     config = config_a.copy()
 
-    # Echo
-    log(f"Merging Configuration" , level="DEBUG")
-    log(f"Previous Configuration:" , level="DEBUG")
-
     # Display Current Configuration
-    print(config)
+    log(f"Previous Configuration:" , level="DEBUG")
+    print(json.dumps(CONFIG, indent=4, sort_keys=True))
 
     # Echo
-    log(f"Updated Configuration:" , level="DEBUG")
+    log(f"Merging Configuration:" , level="DEBUG")
 
     # Deep Merge Configuration
     deep_merge_dicts(config , config_b)
 
     # Display Updated Configuration
-    print(config)
+    log(f"New Configuration:" , level="DEBUG")
+    print(json.dumps(CONFIG, indent=4, sort_keys=True))
 
     # Return Result
     return config
@@ -238,8 +236,6 @@ def isint(text):
 # Get the System Event Log(s) filtered
 def get_system_event_log_filtered(filter = "" , label = ""):
     # Check if any Events occurred at all
-    #has_events = subprocess.check_output(f"ipmitool -c sel | grep -i 'Entries' | sed -E 's|^Entries\\s*?:\\s*?([0-9]*)$|\\1|'" , shell=True).decode()
-    #has_events = run_cmd(["ipmitool", "-c" , "sel" , "|" , "grep" , "-i" , "'Entries'" , "|" , "sed" , "-E" , "'s|^Entries\\s*?:\\s*?([0-9]*)$|\\1|'"] , check_return_code=False , return_result=True)
     cmd = [["ipmitool" , "-c" , "sel"] , ["grep" , "-i" , "Entries"] , ["sed" , "-E" , "'s|^Entries\\s*?:\\s*?([0-9]*)$|\\1|'"]]
     events_obj = Command(command = cmd , return_result = True , check_return_code = True , debug = CONFIG["general"]["debug"])
     has_events = events_obj.getOutput(decode = True)
@@ -248,7 +244,7 @@ def get_system_event_log_filtered(filter = "" , label = ""):
     system_event_log_obj = None
 
     # Echo
-    log(f"System Event Log [{label}]: check if System had any Events Logged" , level="DEBUG")
+    log(f"System Event Log [{label}]: Checking if System had any Events Logged" , level="DEBUG")
 
     # Only get System Event Log if there are Events registered, otherwise we'll have Errors later
     if has_events is not None and len(has_events) > 0:
@@ -271,15 +267,14 @@ def get_system_event_log_filtered(filter = "" , label = ""):
                 log(f"System Event Log [{label}]: {Nevents} (Numeric) Events have been Logged" , level="DEBUG")
 
                 # Get System Events according to Filter
-                #system_event_log = subprocess.run(f"ipmitool -c sel elist | grep -Ei '{filter}'" , shell=True).decode()
                 cmd = [["ipmitool" , "-c" , "sel" , "elist"] , ["grep" , "-Ei" , f"'{filter}'"]]
                 system_event_log_obj = Command(command = cmd , check_return_code = False , return_result = True , debug = CONFIG["general"]["debug"])
             else:
                 # Echo
-                log(f"System Event Log [{label}]: Invalid Response Received (zero-Length) -> {events}" , level="DEBUG")
+                log(f"System Event Log [{label}]: System Log is Empty" , level="DEBUG")
         else:
             # Echo
-            log(f"System Event Log [{label}]: Invalid Response Received (non-Integer) -> {events}" , level="DEBUG")
+            log(f"System Event Log [{label}]: Invalid Response Received (non-Integer Data) -> {events}" , level="DEBUG")
 
     else:
         # Echo
@@ -318,7 +313,14 @@ def get_system_event_log(log_all = True , log_fans = True , log_temperatures = T
 
     # Get System Events
     system_event_log_obj = get_system_event_log_filtered(filter = system_event_filter , label = system_event_type)
-    system_event_log = system_event_log_obj.getOutput(decode = True)
+
+    if system_event_log_obj:
+        # System Log has some Entries
+        system_event_log = system_event_log_obj.getOutput(decode = True)
+    else:
+        # System Log doesn't have any Entry
+        system_event_log = None
+        
 
     # Process Results
 
@@ -521,28 +523,6 @@ def run_temperature_protection(label , id , current_temp):
         # Echo
         log(f"{label} OverTemperature Protection: No Devices of Type {label} are installed. No Action will be performed for {label} OverTemperature Protection.")
 
-# Run Command (simple, without Pipes)
-# To be implemented in the future in Order to Detect Errors returned by e.g. ipmitool
-#def run_cmd(command , return_result = False , check_return_code = True):
-#    # Echo Command
-#    log(f"Running Command: {' '.join([str(item) for item in command])}" , level="DEBUG")
-#    log(f"Command Array: {command}" , level="DEBUG")
-#
-#    # Run Command
-#    result_cmd = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True , text=True)
-#
-#    if result_cmd.returncode != 0:
-#        text_cmd = result_cmd.stderr.rsplit("\n")
-#        log(f"Command exited with a non-Zero Error Code" , level="ERROR")
-#        log(f"{result_cmd.stderr}" , level="ERROR")
-#    else:
-#        text_cmd = result_cmd.stdout.rsplit("\n")
-#
-#    # Return result
-#    if return_result:
-#        return text_cmd
-#
-
 # Loop Method
 # Infinite Loop
 def loop():
@@ -563,9 +543,14 @@ def loop():
         # ...
 
         # Get current ALL Drive Temperatures
-        #drives_temps_all = get_drives_temperatures()
-        #drives_temps_max = max(drives_temps_all)
-        #log(f"Maximum Drive Temperature: {drives_temps_max}°C" , level="INFO")
+        drives_temps_all = get_drives_temperatures()
+        drives_count = len(drives_temps_all)
+        if drives_temps_all is not None and drives_count > 0:
+            drives_temps_max = max(drives_temps_all)
+            log(f"Maximum DRIVE Temperature: {drives_temps_max}°C" , level="INFO")
+        else:
+            drives_temps_max = None
+            log(f"No DRIVE Detected" , level="INFO")
 
         # Get current HDD Temperatures
         hdd_temps_all = get_drives_temperatures(filterType = DiskType.HDD)
@@ -599,7 +584,7 @@ def loop():
 
         # Initialize new_fan_speed = current_fan_speed
         new_fan_speed_cpu = current_fan_speed
-        #new_fan_speed_drive = current_fan_speed
+        new_fan_speed_drive = current_fan_speed
         new_fan_speed_hdd = current_fan_speed
         new_fan_speed_ssd = current_fan_speed
         new_fan_speed_nvme = current_fan_speed
@@ -610,20 +595,31 @@ def loop():
         # Regulate Fan Speed based on CPU Temperature
         new_fan_speed_cpu = run_temperature_controller(label = "CPU" , id = "cpu" , current_temp = cpu_temp , current_fan_speed = new_fan_speed_cpu)
 
-        # Regulate Fan Speed based on Drives Temperature
-        #new_fan_speed_drive = run_temperature_controller(label = "Drive" , id = "drive" , current_temp = drives_temps_max , current_fan_speed = new_fan_speed_drive)
 
+
+        # Protect Drives Temperature
+        run_temperature_protection(label = "DRIVE" , id = "drive" , current_temp = drives_temps_max)
+
+        # Regulate Fan Speed based on Drives Temperature
+        new_fan_speed_drive = run_temperature_controller(label = "Drive" , id = "drive" , current_temp = drives_temps_max , current_fan_speed = new_fan_speed_drive)
+
+
+       
         # Protect HDD Temperature
         run_temperature_protection(label = "HDD" , id = "hdd" , current_temp = hdd_temps_max)
 
         # Regulate Fan Speed based on HDD Temperature
         new_fan_speed_hdd = run_temperature_controller(label = "HDD" , id = "hdd" , current_temp = hdd_temps_max , current_fan_speed = new_fan_speed_hdd)
 
+
+
         # Protect SSD Temperature
         run_temperature_protection(label = "SSD" , id = "ssd" , current_temp = ssd_temps_max)
 
         # Regulate Fan Speed based on SSD Temperature
         new_fan_speed_ssd = run_temperature_controller(label = "SSD" , id = "ssd" , current_temp = ssd_temps_max , current_fan_speed = new_fan_speed_ssd)
+
+
 
         # Protect NVME Temperature
         run_temperature_protection(label = "NVME" , id = "nvme" , current_temp = nvme_temps_max)
@@ -632,9 +628,11 @@ def loop():
         new_fan_speed_nvme = run_temperature_controller(label = "NVME" , id = "nvme" , current_temp = nvme_temps_max , current_fan_speed = new_fan_speed_nvme)
 
 
+
+
         # Get worst Case
         #new_fan_speed = max([new_fan_speed_cpu , new_fan_speed_drive])
-        new_fan_speed = max([new_fan_speed_cpu , new_fan_speed_hdd , new_fan_speed_ssd , new_fan_speed_nvme])
+        new_fan_speed = max([new_fan_speed_cpu , new_fan_speed_drive , new_fan_speed_hdd , new_fan_speed_ssd , new_fan_speed_nvme])
 
         # Set Fan Speed
         if new_fan_speed != current_fan_speed:
