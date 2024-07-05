@@ -27,6 +27,12 @@ else
    REBUILD_INITRD="no"
 fi
 
+# Update old Folder Structure (if any)
+if [[ -d "/opt/supermicro-fan-control/bin" ]]
+then
+   mv /opt/supermicro-fan-control/bin /opt/supermicro-fan-control/app
+fi
+
 # Upgrade existing Files if Any
 # !! The new Extension used is .yml instead of .yaml !!
 mapfile -t oldconfigfiles < <( find "${SUPERMICRO_FAN_CONTROL_CONFIG_PATH}" -iname *.yaml* )
@@ -109,7 +115,7 @@ fi
 cp -r opt/supermicro-fan-control/* /opt/supermicro-fan-control/
 
 # Ensure Proper Permissions
-chmod 755 /opt/supermicro-fan-control/bin/supermicro-fan-control.py
+chmod 755 /opt/supermicro-fan-control/app/supermicro-fan-control.py
 
 # Install Example Settings
 cp -r etc/supermicro-fan-control/* "${SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/"
