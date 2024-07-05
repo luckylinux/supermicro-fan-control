@@ -137,8 +137,8 @@ class Command:
         # Loop over each Pipe
         for p in range(0 , self.number_pipes , 1):
             # Echo
-            log(f"Processing Command for Pipe #{p} (Array): {self.command_string_pipes[p]}" , level="DEBUG" , indent=1)
-            log(f"Processing Command for Pipe #{p} (String): {self.command_array[p]}" , level="DEBUG" , indent=1)
+            log(f"Processing Command for Pipe #{p} (Array): {self.command_array[p]}" , level="DEBUG" , indent=1)
+            log(f"Processing Command for Pipe #{p} (String): {self.command_string_pipes[p]}" , level="DEBUG" , indent=1)
 
             # Save Input
             if p == 0:
