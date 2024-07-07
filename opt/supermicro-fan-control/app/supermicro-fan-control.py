@@ -353,6 +353,8 @@ def get_system_event_log(log_all = True , log_fans = True , log_temperatures = T
                 # Some IPMI Messages do NOT have all Columns
                 if Ncols >= 7:
                     event_message = row[6]
+                else:
+                    event_message = ""
 
                 # Format Date
                 #datetime.datetime.strptime("2013-1-25", '%Y-%m-%d').strftime('%m/%d/%y')
