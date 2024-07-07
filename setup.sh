@@ -63,7 +63,10 @@ then
 
     # Revert "ugly and loud noise, getting on everyone's nerves; this should be done by a nice pulseaudio bing (Ubuntu: #77010)"
     # This was apparently introduced by Ubuntu, but I believe it's better to know than NOT to know, when we have a critical issue !
-    sed -Ei "s|^blacklist pcspkr|#blacklist pcspkr|" /etc/modprobe.d/blacklist.conf
+    if [[ -f /etc/modprobe.d/blacklist.conf ]]
+    then
+        sed -Ei "s|^blacklist pcspkr|#blacklist pcspkr|" /etc/modprobe.d/blacklist.conf
+    fi
 
     # Echo
     #echo "IMPORTANT: Remember to Update / Regenerate your initramfs/initrd in case this is the first Time you execute this Script"
