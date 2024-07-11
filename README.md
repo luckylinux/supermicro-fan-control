@@ -138,6 +138,13 @@ IMPLEMENTED in commit 4b9f3c39250d2bc7d39f1af5a22c4336e4f87530.
 ipmitool -c sensor | grep -Ei "^FAN|^MB-FAN|^BPN-FAN"
 ```
 
+## Implement Support for Other Systems
+Use `echo` to directly Control PWM Fans on non-IPMI System.
+
+Target is at the Moment an ASUS x570 AMD Ryzen System.
+
+Notes: https://bbs.archlinux.org/viewtopic.php?id=225349
+
 ## Docker Image
 In theory, it should be possible to run this as a Docker Container.
 
