@@ -206,6 +206,7 @@ def get_drives_temperatures(filterType = None):
 def get_cpu_temperatures():
     cmd = ["ipmitool" , "sdr" , "type" , "temperature"]
     temp_output_obj = Command(command = cmd , return_result = True , check_return_code = True)
+    time.sleep(2)
     temp_output = temp_output_obj.getOutput(decode=True)
     cpu_temp_lines = [line for line in temp_output.split("\n") if "CPU" in line and "degrees" in line]
 
@@ -238,6 +239,7 @@ def get_system_event_log_filtered(filter = "" , label = ""):
     # Check if any Events occurred at all
     cmd = [["ipmitool" , "-c" , "sel"] , ["grep" , "-i" , "Entries"] , ["sed" , "-E" , "'s|^Entries\\s*?:\\s*?([0-9]*)$|\\1|'"]]
     events_obj = Command(command = cmd , return_result = True , check_return_code = True , debug = CONFIG["general"]["debug"])
+    time.sleep(5)
     has_events = events_obj.getOutput(decode = True)
    
     # Initialize as None by Default
@@ -269,6 +271,7 @@ def get_system_event_log_filtered(filter = "" , label = ""):
                 # Get System Events according to Filter
                 cmd = [["ipmitool" , "-c" , "sel" , "elist"] , ["grep" , "-Ei" , f"'{filter}'"]]
                 system_event_log_obj = Command(command = cmd , check_return_code = False , return_result = True , debug = CONFIG["general"]["debug"])
+                time.sleep(2)
             else:
                 # Echo
                 log(f"System Event Log [{label}]: System Log is Empty" , level="DEBUG")
@@ -376,6 +379,7 @@ def get_system_event_log(log_all = True , log_fans = True , log_temperatures = T
 def get_fan_speeds():
     cmd = [["ipmitool" , "-c" , "sensor"] , ["grep" , "-Ei" , "'^FAN|^MB-FAN|^BPN-FAN'"]]
     fan_speed_obj = Command(command = cmd , return_result = True , check_return_code = True)
+    time.sleep(2)
     fan_speed_lines = fan_speed_obj.getOutput(decode=True)
 
     if fan_speed_lines:
