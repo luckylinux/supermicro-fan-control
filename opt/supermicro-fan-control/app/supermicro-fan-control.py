@@ -481,13 +481,13 @@ def run_temperature_controller(label , id , current_temp , current_fan_speed):
         else:
             if new_fan_speed >= CONFIG["fan"]["max_speed"]:
                 # Echo
-                log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed} is already >= {CONFIG['fan']['max_speed']}°C" , level="DEBUG")
+                log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed}% is already >= Fan Maximum Speed ({CONFIG['fan']['max_speed']}%)" , level="DEBUG")
 
             elif new_fan_speed <= CONFIG["fan"]["min_speed"]:
                 # Echo
-                log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed} is already <= {CONFIG['fan']['min_speed']}°C" , level="DEBUG")
+                log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed}% is already <= Fan Minimum Speed ({CONFIG['fan']['min_speed']}%)" , level="DEBUG")
 
-            elif current_temp >= CONFIG[id]['min_temp'] and current_temp <= CONFIG[id]['max_temp']:
+            if current_temp >= CONFIG[id]['min_temp'] and current_temp <= CONFIG[id]['max_temp']:
                 # Echo
                 log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since {label} Temperature = {current_temp}°C is within Histeresis Range = [{CONFIG[id]['min_temp']}°C ... {CONFIG[id]['max_temp']}°C]" , level="DEBUG")
 
