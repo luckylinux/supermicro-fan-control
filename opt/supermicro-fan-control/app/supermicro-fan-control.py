@@ -40,8 +40,8 @@ from modules.Logging import log
 CONFIG = dict()
 
 # Initialize minimum Fan Speed to 50%
-# Will be overridden by CONFIG["fan"]["min_speed"] in case that Value is Higher than this
-current_fan_speed = 50               # [%] Current Fan Speed
+# Will be overridden by CONFIG["fan"]["initial_speed"] in case that Value is Higher than this
+current_fan_speed = 50 # [%] Current Fan Speed
 
 
 
@@ -803,7 +803,12 @@ if __name__ == "__main__":
     configure()
 
     # Override the initial Setting for current_fan_speed in case CONFIG["fan"]["min_speed"] is higher
-    current_fan_speed = max(current_fan_speed , CONFIG["fan"]["min_speed"])
+    if "initial_speed" in CONFIG["fan"]:
+        # Use the "initial_speed" Parameter or the Default Initial Value of current_fan_speed (50%), whichever is higher
+        current_fan_speed = max(current_fan_speed , CONFIG["fan"]["initial_speed"])
+    else:
+        # Use the "min_speed" Parameter or the Default Initial Value of current_fan_speed (50%), whichever is higher
+        current_fan_speed = max(current_fan_speed , CONFIG["fan"]["min_speed"])
 
     # Set initial minimum fan speed
     log(f"Set Initial Fan Speed to {current_fan_speed}%" , "INFO")
