@@ -51,6 +51,7 @@ nvme:
 
 # Generic Fan
 fan:
+    initial_speed: 70
     max_speed: 100
     min_speed: 10
     inc_speed_step: 5
