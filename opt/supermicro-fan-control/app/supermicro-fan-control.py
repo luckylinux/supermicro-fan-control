@@ -26,6 +26,9 @@ from datetime import datetime
 # Python DiskInfo Module
 from diskinfo import Disk, DiskInfo, DiskType
 
+# Import psutil Python Module
+import psutil
+
 # Subprocess Python Module
 from subprocess import Popen , PIPE, run
 
@@ -204,19 +207,78 @@ def get_drives_temperatures(filterType = None):
 
 # Get the current CPU Temperature(s)
 def get_cpu_temperatures():
-    cmd = ["ipmitool" , "sdr" , "type" , "temperature"]
-    temp_output_obj = Command(command = cmd , return_result = True , check_return_code = True)
-    time.sleep(2)
-    temp_output = temp_output_obj.getOutput(decode=True)
-    cpu_temp_lines = [line for line in temp_output.split("\n") if "CPU" in line and "degrees" in line]
 
-    if cpu_temp_lines:
-        cpu_temps = [int(re.search(r'\d+(?= degrees)', line).group()) for line in cpu_temp_lines if re.search(r'\d+(?= degrees)', line)]
-        avg_cpu_temp = sum(cpu_temps) // len(cpu_temps)
-        return avg_cpu_temp
+    # Check which Driver to Use
+    if CONFIG["cpu"]["driver"] == "psutil":
+        # Use psutil Python Library to access Data Locally
+        temperatures = psutil.sensors_temperatures()
+
+        # Extract CPU Temperatures
+        cpu_temperatures_all = temperatures['coretemp']
+
+        if cpu_temperatures_all:
+            cpu_temps = [int(item.current) for item in cpu_temperatures_all if "Package id" in item.label]
+            core_temps = [int(item.current) for item in cpu_temperatures_all if "Core" in item.label]
+
+            # Number of CPUs Detected on the System
+            NCPUs = len(cpu_temps)
+
+            # Log how many CPUs were Detected
+            log(f"Number of CPUs Detected on this System: {NCPUs}" , level="DEBUG")
+
+            # Print individual CPU Temperatures
+            for cpu_index , cpu_temp in enumerate(cpu_temps): log(f"Current Temperatures of CPU {cpu_index}: {cpu_temp}" , level="DEBUG")
+
+            # Print individual Core Temperatures
+            for core_index , core_temp in enumerate(core_temps): log(f"Current Temperatures of Core {core_index}: {core_temp}" , level="DEBUG")
+
+            # Calculate Average/Maximum Temperature between CPUs
+            avg_cpu_temp = sum(cpu_temps) / NCPUs
+            max_cpu_temp = max(cpu_temps) / 1.0
+
+            # Print Average / Maximum Value
+            log(f"Average CPU temperature: {avg_cpu_temp}°C" , level="DEBUG")
+            log(f"Maximum CPU temperature: {max_cpu_temp}°C" , level="DEBUG")
+
+            # Return one Value
+            return avg_cpu_temp
+        else:
+            log(f"Failed to retrieve CPU temperature." , level="ERROR")
+            return None
+
     else:
-        log("Failed to retrieve CPU temperature." , level="ERROR")
-        return None
+        # Use Ipmitool to access Data
+        cmd = ["ipmitool" , "sdr" , "type" , "temperature"]
+        temp_output_obj = Command(command = cmd , return_result = True , check_return_code = True)
+        time.sleep(2)
+        temp_output = temp_output_obj.getOutput(decode=True)
+        cpu_temp_lines = [line for line in temp_output.split("\n") if "CPU" in line and "degrees" in line]
+
+        if cpu_temp_lines:
+            cpu_temps = [int(re.search(r'\d+(?= degrees)', line).group()) for line in cpu_temp_lines if re.search(r'\d+(?= degrees)', line)]
+
+            # Number of CPUs Detected on the System
+            NCPUs = len(cpu_temps)
+
+            # Log how many CPUs were Detected
+            log(f"Number of CPUs Detected on this System: {NCPUs}" , level="DEBUG")
+
+            # Print individual CPU Temperatures
+            for cpu_index , cpu_temp in enumerate(cpu_temps): log(f"Current Temperatures of CPU {cpu_index}: {cpu_temp}" , level="DEBUG")
+
+            # Calculate Average/Maximum Temperature between CPUs
+            avg_cpu_temp = sum(cpu_temps) / len(cpu_temps)
+            max_cpu_temp = max(cpu_temps) / 1.0
+
+            # Print Average / Maximum Value
+            log(f"Average CPU temperature: {avg_cpu_temp}°C" , level="DEBUG")
+            log(f"Maximum CPU temperature: {max_cpu_temp}°C" , level="DEBUG")
+
+            # Return one Value
+            return avg_cpu_temp
+        else:
+            log(f"Failed to retrieve CPU temperature." , level="ERROR")
+            return None
 
 # Check if string is float
 def isfloat(text):
@@ -664,7 +726,10 @@ def loop():
         get_fan_speeds()
 
         # Get and Log IPMI System Event Log
-        get_system_event_log()
+        try:
+            get_system_event_log()
+        except Exception as e:
+            log(f"Event Log: Error Parsing the IPMI Event Log. Error was: {e}." , level="ERROR")
 
         # Wait UPDATE_INTERVAL seconds before checking the temperature again
         #pprint.pprint(CONFIG)
