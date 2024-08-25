@@ -26,6 +26,9 @@ from datetime import datetime
 # Python DiskInfo Module
 from diskinfo import Disk, DiskInfo, DiskType
 
+# Import psutil Python Module
+import psutil
+
 # Subprocess Python Module
 from subprocess import Popen , PIPE, run
 
@@ -204,18 +207,74 @@ def get_drives_temperatures(filterType = None):
 
 # Get the current CPU Temperature(s)
 def get_cpu_temperatures():
-    cmd = ["ipmitool" , "sdr" , "type" , "temperature"]
-    temp_output_obj = Command(command = cmd , return_result = True , check_return_code = True)
-    temp_output = temp_output_obj.getOutput(decode=True)
-    cpu_temp_lines = [line for line in temp_output.split("\n") if "CPU" in line and "degrees" in line]
 
-    if cpu_temp_lines:
-        cpu_temps = [int(re.search(r'\d+(?= degrees)', line).group()) for line in cpu_temp_lines if re.search(r'\d+(?= degrees)', line)]
-        avg_cpu_temp = sum(cpu_temps) // len(cpu_temps)
-        return avg_cpu_temp
+    # Initialize cpu_temps and core_temps to Empty Array
+    cpu_temps = []
+    core_temps = []
+
+    # Check which Driver to Use
+    if CONFIG["cpu"]["driver"] == "psutil":
+        # Debug
+        log(f"Extracting CPU Temperatures Data using psuitil Driver (cpu driver Setting in Configuration: {CONFIG['cpu']['driver']})" , level="DEBUG")
+
+        # Use psutil Python Library to access Data Locally
+        temperatures = psutil.sensors_temperatures()
+
+        # Extract CPU Temperatures
+        cpu_temperatures_all = temperatures['coretemp']
+
+        if cpu_temperatures_all:
+            # Extract CPUs and Cores Temperatures
+            cpu_temps = [int(item.current) for item in cpu_temperatures_all if "Package id" in item.label]
+            core_temps = [int(item.current) for item in cpu_temperatures_all if "Core" in item.label]
+        else:
+            log(f"Failed to retrieve CPU temperature using psutil." , level="ERROR")
+            return None
+
     else:
-        log("Failed to retrieve CPU temperature." , level="ERROR")
-        return None
+        # Debug
+        log(f"Extracting CPU Temperatures Data using ipmitool Driver (cpu driver Setting in Configuration: {CONFIG['cpu']['driver']})" , level="DEBUG")
+
+        # Use Ipmitool to access Data
+        cmd = ["ipmitool" , "sdr" , "type" , "temperature"]
+        temp_output_obj = Command(command = cmd , return_result = True , check_return_code = True)
+        time.sleep(2)
+        temp_output = temp_output_obj.getOutput(decode=True)
+        cpu_temp_lines = [line for line in temp_output.split("\n") if "CPU" in line and "degrees" in line]
+
+        if cpu_temp_lines:
+            # Extract CPUs Temperatures
+            cpu_temps = [int(re.search(r'\d+(?= degrees)', line).group()) for line in cpu_temp_lines if re.search(r'\d+(?= degrees)', line)]
+        else:
+            log(f"Failed to retrieve CPU temperature using ipmitool." , level="ERROR")
+            return None
+
+    # Common Code
+    # Data has already been extracted but can be processed in the same Way
+
+    # Number of CPUs Detected on the System
+    NCPUs = len(cpu_temps)
+
+    # Log how many CPUs were Detected
+    log(f"Number of CPUs Detected on this System: {NCPUs}" , level="DEBUG")
+
+    # Print individual CPU Temperatures
+    for cpu_index , cpu_temp in enumerate(cpu_temps): log(f"Current Temperatures of CPU {cpu_index}: {cpu_temp}" , level="DEBUG")
+
+    # Print individual Core Temperatures (if available)
+    if len(core_temps) > 0:
+        for core_index , core_temp in enumerate(core_temps): log(f"Current Temperatures of Core {core_index}: {core_temp}" , level="DEBUG")
+
+    # Calculate Average/Maximum Temperature between CPUs
+    avg_cpu_temp = sum(cpu_temps) / len(cpu_temps)
+    max_cpu_temp = max(cpu_temps) / 1.0
+
+    # Print Average / Maximum Value
+    log(f"Average CPU temperature: {avg_cpu_temp}°C" , level="DEBUG")
+    log(f"Maximum CPU temperature: {max_cpu_temp}°C" , level="DEBUG")
+
+    # Return one Value
+    return avg_cpu_temp
 
 # Check if string is float
 def isfloat(text):
@@ -238,6 +297,7 @@ def get_system_event_log_filtered(filter = "" , label = ""):
     # Check if any Events occurred at all
     cmd = [["ipmitool" , "-c" , "sel"] , ["grep" , "-i" , "Entries"] , ["sed" , "-E" , "'s|^Entries\\s*?:\\s*?([0-9]*)$|\\1|'"]]
     events_obj = Command(command = cmd , return_result = True , check_return_code = True , debug = CONFIG["general"]["debug"])
+    time.sleep(5)
     has_events = events_obj.getOutput(decode = True)
    
     # Initialize as None by Default
@@ -269,6 +329,7 @@ def get_system_event_log_filtered(filter = "" , label = ""):
                 # Get System Events according to Filter
                 cmd = [["ipmitool" , "-c" , "sel" , "elist"] , ["grep" , "-Ei" , f"'{filter}'"]]
                 system_event_log_obj = Command(command = cmd , check_return_code = False , return_result = True , debug = CONFIG["general"]["debug"])
+                time.sleep(2)
             else:
                 # Echo
                 log(f"System Event Log [{label}]: System Log is Empty" , level="DEBUG")
@@ -376,6 +437,7 @@ def get_system_event_log(log_all = True , log_fans = True , log_temperatures = T
 def get_fan_speeds():
     cmd = [["ipmitool" , "-c" , "sensor"] , ["grep" , "-Ei" , "'^FAN|^MB-FAN|^BPN-FAN'"]]
     fan_speed_obj = Command(command = cmd , return_result = True , check_return_code = True)
+    time.sleep(2)
     fan_speed_lines = fan_speed_obj.getOutput(decode=True)
 
     if fan_speed_lines:
@@ -477,13 +539,13 @@ def run_temperature_controller(label , id , current_temp , current_fan_speed):
         else:
             if new_fan_speed >= CONFIG["fan"]["max_speed"]:
                 # Echo
-                log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed} is already >= {CONFIG['fan']['max_speed']}°C" , level="DEBUG")
+                log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed}% is already >= Fan Maximum Speed ({CONFIG['fan']['max_speed']}%)" , level="DEBUG")
 
             elif new_fan_speed <= CONFIG["fan"]["min_speed"]:
                 # Echo
-                log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed} is already <= {CONFIG['fan']['min_speed']}°C" , level="DEBUG")
+                log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since Current Fan Speed {current_fan_speed}% is already <= Fan Minimum Speed ({CONFIG['fan']['min_speed']}%)" , level="DEBUG")
 
-            elif current_temp >= CONFIG[id]['min_temp'] and current_temp <= CONFIG[id]['max_temp']:
+            if current_temp >= CONFIG[id]['min_temp'] and current_temp <= CONFIG[id]['max_temp']:
                 # Echo
                 log(f"{label} Temperature Controller: Skipping Fan Speed Reference Update for {label} Controller since {label} Temperature = {current_temp}°C is within Histeresis Range = [{CONFIG[id]['min_temp']}°C ... {CONFIG[id]['max_temp']}°C]" , level="DEBUG")
 
@@ -660,7 +722,10 @@ def loop():
         get_fan_speeds()
 
         # Get and Log IPMI System Event Log
-        get_system_event_log()
+        try:
+            get_system_event_log()
+        except Exception as e:
+            log(f"Event Log: Error Parsing the IPMI Event Log. Error was: {e}." , level="ERROR")
 
         # Wait UPDATE_INTERVAL seconds before checking the temperature again
         #pprint.pprint(CONFIG)
