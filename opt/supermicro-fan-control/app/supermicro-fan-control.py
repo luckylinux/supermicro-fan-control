@@ -208,8 +208,15 @@ def get_drives_temperatures(filterType = None):
 # Get the current CPU Temperature(s)
 def get_cpu_temperatures():
 
+    # Initialize cpu_temps and core_temps to Empty Array
+    cpu_temps = []
+    core_temps = []
+
     # Check which Driver to Use
     if CONFIG["cpu"]["driver"] == "psutil":
+        # Debug
+        log(f"Extracting CPU Temperatures Data using psuitil Driver (cpu driver Setting in Configuration: {CONFIG['cpu']['driver']})" , level="DEBUG")
+
         # Use psutil Python Library to access Data Locally
         temperatures = psutil.sensors_temperatures()
 
@@ -217,36 +224,17 @@ def get_cpu_temperatures():
         cpu_temperatures_all = temperatures['coretemp']
 
         if cpu_temperatures_all:
+            # Extract CPUs and Cores Temperatures
             cpu_temps = [int(item.current) for item in cpu_temperatures_all if "Package id" in item.label]
             core_temps = [int(item.current) for item in cpu_temperatures_all if "Core" in item.label]
-
-            # Number of CPUs Detected on the System
-            NCPUs = len(cpu_temps)
-
-            # Log how many CPUs were Detected
-            log(f"Number of CPUs Detected on this System: {NCPUs}" , level="DEBUG")
-
-            # Print individual CPU Temperatures
-            for cpu_index , cpu_temp in enumerate(cpu_temps): log(f"Current Temperatures of CPU {cpu_index}: {cpu_temp}" , level="DEBUG")
-
-            # Print individual Core Temperatures
-            for core_index , core_temp in enumerate(core_temps): log(f"Current Temperatures of Core {core_index}: {core_temp}" , level="DEBUG")
-
-            # Calculate Average/Maximum Temperature between CPUs
-            avg_cpu_temp = sum(cpu_temps) / NCPUs
-            max_cpu_temp = max(cpu_temps) / 1.0
-
-            # Print Average / Maximum Value
-            log(f"Average CPU temperature: {avg_cpu_temp}°C" , level="DEBUG")
-            log(f"Maximum CPU temperature: {max_cpu_temp}°C" , level="DEBUG")
-
-            # Return one Value
-            return avg_cpu_temp
         else:
-            log(f"Failed to retrieve CPU temperature." , level="ERROR")
+            log(f"Failed to retrieve CPU temperature using psutil." , level="ERROR")
             return None
 
     else:
+        # Debug
+        log(f"Extracting CPU Temperatures Data using ipmitool Driver (cpu driver Setting in Configuration: {CONFIG['cpu']['driver']})" , level="DEBUG")
+
         # Use Ipmitool to access Data
         cmd = ["ipmitool" , "sdr" , "type" , "temperature"]
         temp_output_obj = Command(command = cmd , return_result = True , check_return_code = True)
@@ -255,30 +243,38 @@ def get_cpu_temperatures():
         cpu_temp_lines = [line for line in temp_output.split("\n") if "CPU" in line and "degrees" in line]
 
         if cpu_temp_lines:
+            # Extract CPUs Temperatures
             cpu_temps = [int(re.search(r'\d+(?= degrees)', line).group()) for line in cpu_temp_lines if re.search(r'\d+(?= degrees)', line)]
-
-            # Number of CPUs Detected on the System
-            NCPUs = len(cpu_temps)
-
-            # Log how many CPUs were Detected
-            log(f"Number of CPUs Detected on this System: {NCPUs}" , level="DEBUG")
-
-            # Print individual CPU Temperatures
-            for cpu_index , cpu_temp in enumerate(cpu_temps): log(f"Current Temperatures of CPU {cpu_index}: {cpu_temp}" , level="DEBUG")
-
-            # Calculate Average/Maximum Temperature between CPUs
-            avg_cpu_temp = sum(cpu_temps) / len(cpu_temps)
-            max_cpu_temp = max(cpu_temps) / 1.0
-
-            # Print Average / Maximum Value
-            log(f"Average CPU temperature: {avg_cpu_temp}°C" , level="DEBUG")
-            log(f"Maximum CPU temperature: {max_cpu_temp}°C" , level="DEBUG")
-
-            # Return one Value
-            return avg_cpu_temp
         else:
-            log(f"Failed to retrieve CPU temperature." , level="ERROR")
+            log(f"Failed to retrieve CPU temperature using ipmitool." , level="ERROR")
             return None
+
+    # Common Code
+    # Data has already been extracted but can be processed in the same Way
+
+    # Number of CPUs Detected on the System
+    NCPUs = len(cpu_temps)
+
+    # Log how many CPUs were Detected
+    log(f"Number of CPUs Detected on this System: {NCPUs}" , level="DEBUG")
+
+    # Print individual CPU Temperatures
+    for cpu_index , cpu_temp in enumerate(cpu_temps): log(f"Current Temperatures of CPU {cpu_index}: {cpu_temp}" , level="DEBUG")
+
+    # Print individual Core Temperatures (if available)
+    if len(core_temps) > 0:
+        for core_index , core_temp in enumerate(core_temps): log(f"Current Temperatures of Core {core_index}: {core_temp}" , level="DEBUG")
+
+    # Calculate Average/Maximum Temperature between CPUs
+    avg_cpu_temp = sum(cpu_temps) / len(cpu_temps)
+    max_cpu_temp = max(cpu_temps) / 1.0
+
+    # Print Average / Maximum Value
+    log(f"Average CPU temperature: {avg_cpu_temp}°C" , level="DEBUG")
+    log(f"Maximum CPU temperature: {max_cpu_temp}°C" , level="DEBUG")
+
+    # Return one Value
+    return avg_cpu_temp
 
 # Check if string is float
 def isfloat(text):
