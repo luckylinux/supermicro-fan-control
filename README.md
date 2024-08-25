@@ -175,3 +175,13 @@ Other:
 - https://unix.stackexchange.com/questions/65595/how-to-know-if-a-disk-is-an-ssd-or-an-hdd
 - https://unix.stackexchange.com/questions/387855/make-lsblk-list-devices-by-id
 
+# Git HowTo
+## After each PR
+After each PR, the Development Branch is always `1 commit behind main`.
+
+In order to solve this, the following can be done:
+```
+git fetch origin main
+git reset --hard origin/main
+git push origin $(git branch --show-current) --force
+```
