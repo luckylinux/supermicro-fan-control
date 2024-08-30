@@ -169,6 +169,7 @@ Initial Code:
 Register Settings and Explanation:
 - https://forums.servethehome.com/index.php?threads/supermicro-x9-x10-x11-fan-speed-control.10059/page-10
 - https://forums.servethehome.com/index.php?resources/supermicro-x9-x10-x11-fan-speed-control.20/
+- X9DRi-LN4F+ Motherboard Tested: https://forums.servethehome.com/index.php?threads/supermicro-x9-x10-x11-fan-speed-control.10059/page-6
 - https://serverfault.com/questions/662526/fan-speeds-on-supermicro-system-via-ipmi
 
 Other:
@@ -185,3 +186,6 @@ git fetch origin main
 git reset --hard origin/main
 git push origin $(git branch --show-current) --force
 ```
+
+# Related Projects
+- https://github.com/petersulyok/smfc (discovered AFTER I started developing my own based on Benjamin's Code)
