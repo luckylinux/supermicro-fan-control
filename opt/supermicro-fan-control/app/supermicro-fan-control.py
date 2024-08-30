@@ -32,17 +32,34 @@ import psutil
 # Subprocess Python Module
 from subprocess import Popen , PIPE, run
 
+# Import Global Variables List
+import globals
+
+#from globals import *
+#import modules.Globals
+
+#import globals.CONFIG as CONFIG
+#import globals.LOG_LEVEL as LOG_LEVEL
+
+#from globals.CONFIG import CONFIG
+#from globals.LOG_LEVEL import LOG_LEVEL
+
+#import modules.Globals as Globals
+#modules.Globals.init()
+
 # Import Custom Libraries
 from modules.Command import Command
-from modules.Logging import log
+from modules.Logging import log , LogLevel
 
 # Define Configuration Dictionary
 CONFIG = dict()
 
+# Define LOG_LEVEL
+#LOG_LEVEL = LogLevel.DEBUG
+
 # Initialize minimum Fan Speed to 50%
 # Will be overridden by CONFIG["fan"]["initial_speed"] in case that Value is Higher than this
 current_fan_speed = 50 # [%] Current Fan Speed
-
 
 
 # Init
@@ -299,7 +316,7 @@ def get_system_event_log_filtered(filter = "" , label = ""):
     events_obj = Command(command = cmd , return_result = True , check_return_code = True , debug = CONFIG["general"]["debug"])
     time.sleep(5)
     has_events = events_obj.getOutput(decode = True)
-   
+
     # Initialize as None by Default
     system_event_log_obj = None
 
@@ -402,7 +419,7 @@ def get_system_event_log(log_all = True , log_fans = True , log_temperatures = T
             if row is not None and Ncols > 0:
                 # Format: <id>,<date>,<time>,<component>,<threshold>,<action>,<message>
                 # <time> obtained via `ipmitool` is already with the correct Time Zone. On the IPMI Web Interface, <time> **might** be UTC or a different Time Zone
-                
+
                 # Extract Values
                 event_id = row[0]
                 event_date_raw = row[1]
@@ -424,7 +441,7 @@ def get_system_event_log(log_all = True , log_fans = True , log_temperatures = T
 
                 # Log Event
                 log(f"System Event Log [{system_event_type}]: [{event_component}] Event ID {event_id} on {event_date} at {event_time}: {event_message} (Threshold: {event_threshold} , Action: {event_action})" , level="WARNING")
-        
+
         # Remind User to clear System Event Log
         log(f"System Event Log [{system_event_type}]: Please Fix the Problem for Type {system_event_type} then clear the System Event Log !" , level="INFO")
 
@@ -457,12 +474,12 @@ def get_fan_speeds():
                 if isfloat(value) is True:
                     number = float(value)
                     #if not math.isnan(number) and not math.isinf(number):
-                    log(f"Current {label} Fan Speed: {number} rpm" , level="DEBUG")
+                    log(f"Current {label} Fan Speed: {number} rpm" , level="INFO")
 
 # Set the fan speed
 def set_fan_speed(speed):
     # speed: integer between 0 and 100 (possibly further limited to CONFIG["fan"]["min_speed"] and CONFIG["fan"]["max_speed"])
-    
+
     # Allow to update Global Variables
     global current_fan_speed
 
@@ -556,7 +573,7 @@ def run_temperature_controller(label , id , current_temp , current_fan_speed):
         return new_fan_speed
     else:
         # Echo
-        log(f"{label} Temperature Controller: No Devices of Type {label} are installed. No Action will be performed for {label} Temperature Regulation.")
+        log(f"{label} Temperature Controller: No Devices of Type {label} are installed. No Action will be performed for {label} Temperature Regulation." , level="DEBUG")
 
         # Return Zero
         return 0
@@ -594,7 +611,7 @@ def run_temperature_protection(label , id , current_temp):
             log(f"{label} OverTemperature Protection: Did NOT match any IF Condition. Temperature = {current_temp}°C. {label} OverTemperature Warning Setting = {CONFIG[id]['warning_temp']}°C. {label} OverTemperature Shutdown Setting = {CONFIG[id]['shutdown_temp']}°C. Investigation required.." , level="WARNING")
     else:
         # Echo
-        log(f"{label} OverTemperature Protection: No Devices of Type {label} are installed. No Action will be performed for {label} OverTemperature Protection.")
+        log(f"{label} OverTemperature Protection: No Devices of Type {label} are installed. No Action will be performed for {label} OverTemperature Protection." , level="DEBUG")
 
 # Loop Method
 # Infinite Loop
@@ -737,8 +754,11 @@ def loop():
 
 
 def configure():
+    # Allow Function to modify CONFIG Global Variable
+    global CONFIG
+
     # Get Configuration Folder
-    SUPERMICRO_FAN_CONTROL_CONFIG_PATH = os.getenv("SUPERMICRO_FAN_CONTROL_CONFIG_PATH") 
+    SUPERMICRO_FAN_CONTROL_CONFIG_PATH = os.getenv("SUPERMICRO_FAN_CONTROL_CONFIG_PATH")
 
     if SUPERMICRO_FAN_CONTROL_CONFIG_PATH is None:
         SUPERMICRO_FAN_CONTROL_CONFIG_PATH = "/etc/supermicro-fan-control/"
@@ -796,6 +816,11 @@ def configure():
         # Set the Variable
         os.environ[name] = value
 
+    # Set Log Level
+    globals.LOG_LEVEL = CONFIG["log"]["level"]
+    log(f"Set LOG_LEVEL to {globals.LOG_LEVEL}" , level="DEBUG")
+    #os.environ['LOG_LEVEL'] = LOG_LEVEL
+    #print(f"SET CONFIGURED LOG_LEVEL = {LOG_LEVEL}")
 
 # Main Method
 if __name__ == "__main__":

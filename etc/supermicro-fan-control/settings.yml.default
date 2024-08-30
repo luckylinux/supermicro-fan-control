@@ -5,6 +5,9 @@ general:
         LC_TIME: "en_DK.UTF-8"
         LC_ALL: "en_DK.UTF-8"
     debug: False
+    
+log:
+    level: "INFO"
 
 beep:
     frequency: 2500
