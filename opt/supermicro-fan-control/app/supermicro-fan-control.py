@@ -485,22 +485,25 @@ def set_fan_speed(speed):
         fan_zone_registers = fan_zone["registers"]
         fan_zone_max_speed_hex = fan_zone["max_speed_hex"]
         fan_zone_min_speed_hex = fan_zone["min_speed_hex"]
-        
+
         # Convert Hexadecimal Max / Min Zone Fan Speed to Decimal
         fan_zone_max_speed_dec = int(fan_zone_max_speed_hex , 16)
         fan_zone_min_speed_dec = int(fan_zone_min_speed_hex , 16)
 
-        # Scale according to 0% - 100%
+        # Scale according to (0% - 100%) and give Decimal Value (can be 0-100 or 0-255 Depending on Motherboards)
         fan_zone_speed_dec = fan_zone_min_speed_dec + (fan_zone_max_speed_dec - fan_zone_min_speed_dec) / (100-0) * (speed - fan_zone_min_speed_dec)
 
         # Convert to Integer
         fan_zone_speed_dec = int(fan_zone_speed_dec)
 
+        # Convert to Percentage
+        fan_zone_speed_percent = int((100 * fan_zone_speed_dec) / (fan_zone_max_speed_dec - fan_zone_min_speed_dec))
+
         # Calculate HEX Speed
         fan_zone_speed_hex = format(fan_zone_speed_dec , "02x")
 
         # Echo
-        log(f"Fan Controller: Setting Fan Zone {fan_zone_id} ({fan_zone_description}) to {fan_zone_speed_dec}% (Hex Speed Value to 0x{fan_zone_speed_hex})" , "INFO")
+        log(f"Fan Controller: Setting Fan Zone {fan_zone_id} ({fan_zone_description}) to {fan_zone_speed_percent}% (Decimal Speed Value {fan_zone_speed_dec}, Hex Speed Value 0x{fan_zone_speed_hex})" , "INFO")
 
         # Set the Fan Speed for Zone
         cmd = ["ipmitool" , "raw"] + fan_zone_registers + [f"0x{fan_zone_speed_hex}"]
@@ -508,7 +511,7 @@ def set_fan_speed(speed):
         time.sleep(2)
 
         # Log the Fan Speed change to syslog
-        log(f"Fan Controller: Fan Zone {fan_zone_id} ({fan_zone_description}) Speed has been adjusted to {fan_zone_speed_dec}% (Hex Value 0x{fan_zone_speed_hex})" , level="INFO")
+        log(f"Fan Controller: Fan Zone {fan_zone_id} ({fan_zone_description}) Speed has been adjusted to {fan_zone_speed_percent}% (Decimal Speed Value {fan_zone_speed_dec}, Hex Value 0x{fan_zone_speed_hex})" , level="INFO")
 
 
 # Run Temperature Controller
