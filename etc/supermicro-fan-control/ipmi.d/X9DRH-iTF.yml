@@ -1,0 +1,69 @@
+ipmi:
+    fan_modes:
+      standard:
+        registers:
+          - "0x30"
+          - "0x45"
+          - "0x01"
+          - "0x00"
+      full:
+        registers:
+          - "0x30"
+          - "0x45"
+          - "0x01"
+          - "0x01"
+      optimal:
+        registers:
+          - "0x30"
+          - "0x45"
+          - "0x01"
+          - "0x02"
+      heavy_io:
+        registers:
+          - "0x30"
+          - "0x45"
+          - "0x01"
+          - "0x03"
+
+    fan_zones:
+      # Tested Successfully
+      - id: "0"
+        name: "Zone 0"
+        label: "CPU_Zone"
+        description: "CPU Zone"
+        registers:
+          - "0x30"
+          - "0x91"
+          - "0x5A"
+          - "0x3"
+          - "0x10"
+        max_speed_hex: "0xff"
+        min_speed_hex: "0x00"
+
+      # Couldn't be Tested (3-pin Fan)
+      - id: "1"
+        name: "Zone 1"
+        label: "Secondary_Zone"
+        description: "Secondary Zone"
+        registers:
+          - "0x30"
+          - "0x91"
+          - "0x5A"
+          - "0x3"
+          - "0x11"
+        max_speed_hex: "0xff"
+        min_speed_hex: "0x00"
+
+      # Couldn't be Tested (3-Pin Fan)
+      - id: "2"
+        name: "Zone 2"
+        label: "Peripherals_Zone"
+        description: "Peripherals Zone"
+        registers:
+          - "0x30"
+          - "0x91"
+          - "0x5A"
+          - "0x3"
+          - "0x12"
+        max_speed_hex: "0xff"
+        min_speed_hex: "0x00"
