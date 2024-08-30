@@ -117,6 +117,15 @@ For example on Debian/Ubuntu:
 update-initramfs -k all -u ; update-grub
 ```
 
+# Supported Motherboards
+The following Motherboards have been (somewhat) Tested:
+
+| Manufacturer  | Series | Model       | Socket   | Variable Fan Speed Control |
+| ------------- | ------ | -------     | -------  | -------------------------- |
+| Supermicro    | X10    | X10SLM-F    | LGA 1150 | Full Range (0% ... 100%)   |
+| Supermicro    | X10    | X10SLL-F    | LGA 1150 | Full Range (0% ... 100%)   |
+| Supermicro    | X9     | X9DRi-LN4F+ | LGA 2011 | Full Range (0% ... 100%)   |
+
 # Test that is works Correctly
 Currently, the `default` Profile has been Tested on Supermicro X10SLM-F/X10SLL-F Motherboards.
 
