@@ -155,6 +155,21 @@ Target is at the Moment an ASUS x570 AMD Ryzen System.
 
 Notes: https://bbs.archlinux.org/viewtopic.php?id=225349
 
+Proof of Concept:
+```
+# Set all Fans to (the same) Fixed Speed
+speedreference="180"
+mapfile -t fans < <( find /sys -iwholename *hwmon/*pwm* | grep -E "[0-9]$" )
+for fan in "${fans[@]}"
+do
+    # Set to Manual Control Mode
+    echo "1" > ${fan}_enable
+
+    # Set Duty Cycle / Speed Reference (0 = Stopped, 255 = Max Speed)
+    echo "${speedreference}" > ${fan}
+done
+```
+
 ## Docker Image
 In theory, it should be possible to run this as a Docker Container.
 
