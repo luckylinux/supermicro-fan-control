@@ -11,7 +11,7 @@ source ${toolpath}/functions.sh
 SUPERMICRO_FAN_CONTROL_CONFIG_PATH="/etc/supermicro-fan-control"
 
 # Install venv Package
-python_version=$(python -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')
+python_version=$(python3 -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')
 
 apt-get install "python${python_version}-venv"
 
