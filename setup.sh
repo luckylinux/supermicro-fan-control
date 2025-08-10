@@ -10,6 +10,11 @@ source ${toolpath}/functions.sh
 # Define Paths
 SUPERMICRO_FAN_CONTROL_CONFIG_PATH="/etc/supermicro-fan-control"
 
+# Install venv Package
+python_version=$(python -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')
+
+apt-get install "python${python_version}-venv"
+
 # Create Folders
 mkdir -p "${SUPERMICRO_FAN_CONTROL_CONFIG_PATH}"
 mkdir -p /opt/supermicro-fan-control
