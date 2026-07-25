@@ -1,29 +1,29 @@
 # Core Libraries
-import os
+# import os
 import sys
 from enum import Enum
 
 # Import Global Variables
 import globals
 
-#from modules.Globals import *
-#import modules.Globals as Globals
-#import globals.CONFIG as CONFIG
-#import globals.LOG_LEVEL as LOG_LEVEL
-#from globals.LOG_LEVEL import LOG_LEVEL
+# from modules.Globals import *
+# import modules.Globals as Globals
+# import globals.CONFIG as CONFIG
+# import globals.LOG_LEVEL as LOG_LEVEL
+# from globals.LOG_LEVEL import LOG_LEVEL
 
-#print(globals.LOG_LEVEL.LOG_LEVEL)
-#print(LOG_LEVEL)
-#print(LOG_LEVEL.LOG_LEVEL)
+# print(globals.LOG_LEVEL.LOG_LEVEL)
+# print(LOG_LEVEL)
+# print(LOG_LEVEL.LOG_LEVEL)
 
 
 # Define Log Levels
 class LogLevel(Enum):
     CRITICAL = 1
     ERROR = 2
-    WARNING = 2
-    INFO = 3
-    DEBUG = 4
+    WARNING = 3
+    INFO = 4
+    DEBUG = 5
 
     @staticmethod
     def get_value(name):
@@ -40,15 +40,19 @@ class LogLevel(Enum):
            return None
 
 # Initialize LOG_LEVEL
-#LOG_LEVEL = "DEBUG"
+# LOG_LEVEL = "DEBUG"
 
 # Log
-def log(message , level="INFO" , indent=0):
+def log(message: str,
+    level: str = "INFO",
+    indent: int = 0
+    ) -> None:
+
     # Debug
-    #print(f"level = {level} , LOG_LEVEL = {LOG_LEVEL}")
+    # print(f"level = {level} , LOG_LEVEL = {LOG_LEVEL}")
 
     # Get LOG_LEVEL String Representation
-    log_level_setting_str = globals.LOG_LEVEL
+    # log_level_setting_str = globals.LOG_LEVEL
 
     # Get LOG_LEVEL Integer Representation
     log_level_setting_int = LogLevel.get_value(globals.LOG_LEVEL)
@@ -65,8 +69,8 @@ def log(message , level="INFO" , indent=0):
         log_value_int = LogLevel["DEBUG"].value
 
     # Debug
-    #print(f"level = {level} , LOG_LEVEL = {log_level_setting_str}")
-    #print(f"log_value_int = {log_value_int} , log_level_setting = {log_level_setting_int}")
+    # print(f"level = {level} , LOG_LEVEL = {log_level_setting_str}")
+    # print(f"log_value_int = {log_value_int} , log_level_setting = {log_level_setting_int}")
 
     # If level >= LOG_LEVEL then print it
     if log_value_int <= log_level_setting_int:

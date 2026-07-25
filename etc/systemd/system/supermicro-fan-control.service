@@ -5,7 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/bin/bash -c "cd /opt/supermicro-fan-control && source venv/bin/activate && python3 app/supermicro-fan-control.py"
+ExecStart=/bin/bash -c "/opt/supermicro-fan-control/wrapper.sh start"
+ExecStop=/bin/bash -c "/opt/supermicro-fan-control/wrapper.sh stop"
 Restart=on-failure
 
 [Install]

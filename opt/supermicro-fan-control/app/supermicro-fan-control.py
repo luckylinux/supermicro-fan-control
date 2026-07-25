@@ -2,12 +2,12 @@
 
 # Core Libraries
 import os
-import sys
+# import sys
 import subprocess
 import time
-import syslog
+# import syslog
 import re
-import math
+# import math
 import csv
 
 # Python Modules to interact with YAML Files
@@ -15,16 +15,16 @@ import yaml
 from yaml.loader import SafeLoader
 
 # Python Pretty Print Module
-import pprint
+# import pprint
 
 # Python json Module
 import json
 
 # Python datetime Module
-from datetime import datetime
+# from datetime import datetime
 
 # Python DiskInfo Module
-from diskinfo import Disk, DiskInfo, DiskType
+from diskinfo import DiskInfo, DiskType
 
 # Import psutil Python Module
 import psutil
@@ -35,27 +35,27 @@ from subprocess import Popen , PIPE, run
 # Import Global Variables List
 import globals
 
-#from globals import *
-#import modules.Globals
+# from globals import *
+# import modules.Globals
 
-#import globals.CONFIG as CONFIG
-#import globals.LOG_LEVEL as LOG_LEVEL
+# import globals.CONFIG as CONFIG
+# import globals.LOG_LEVEL as LOG_LEVEL
 
-#from globals.CONFIG import CONFIG
-#from globals.LOG_LEVEL import LOG_LEVEL
+# from globals.CONFIG import CONFIG
+# from globals.LOG_LEVEL import LOG_LEVEL
 
-#import modules.Globals as Globals
-#modules.Globals.init()
+# import modules.Globals as Globals
+# modules.Globals.init()
 
 # Import Custom Libraries
-from modules.Command import Command
-from modules.Logging import log , LogLevel
+from modules.command import Command
+from modules.logging import log
 
 # Define Configuration Dictionary
-CONFIG = dict()
+CONFIG = {}
 
 # Define LOG_LEVEL
-#LOG_LEVEL = LogLevel.DEBUG
+# LOG_LEVEL = LogLevel.DEBUG
 
 # Initialize minimum Fan Speed to 50%
 # Will be overridden by CONFIG["fan"]["initial_speed"] in case that Value is Higher than this
@@ -68,7 +68,7 @@ def init():
     global CONFIG
 
     # Initialize CONFIG as a Dictionary
-    CONFIG = dict()
+    CONFIG = {}
 
 # Filter Drive
 def filter_drive(path):
@@ -90,7 +90,7 @@ def filter_drive(path):
 def deep_merge_lists(original, incoming):
     """
     Deep merge two lists. Modifies original.
-    Recursively call deep merge on each correlated element of list. 
+    Recursively call deep merge on each correlated element of list.
     If item type in both elements are
      a. dict: Call deep_merge_dicts on both values.
      b. list: Recursively call deep_merge_lists on both values.
@@ -146,18 +146,26 @@ def merge_config(config_a , config_b):
     config = config_a.copy()
 
     # Display Current Configuration
-    log(f"Previous Configuration:" , level="DEBUG")
-    print(json.dumps(CONFIG, indent=4, sort_keys=True))
+    log("Previous Configuration:", level="DEBUG")
+    print(json.dumps(CONFIG,
+                     indent=4,
+                     sort_keys=True
+                    )
+         )
 
     # Echo
-    log(f"Merging Configuration:" , level="DEBUG")
+    log("Merging Configuration:", level="DEBUG")
 
     # Deep Merge Configuration
-    deep_merge_dicts(config , config_b)
+    deep_merge_dicts(config, config_b)
 
     # Display Updated Configuration
-    log(f"New Configuration:" , level="DEBUG")
-    print(json.dumps(CONFIG, indent=4, sort_keys=True))
+    log("New Configuration:", level="DEBUG")
+    print(json.dumps(CONFIG,
+                     indent=4,
+                     sort_keys=True
+                     )
+         )
 
     # Return Result
     return config
@@ -245,7 +253,7 @@ def get_cpu_temperatures():
             cpu_temps = [int(item.current) for item in cpu_temperatures_all if "Package id" in item.label]
             core_temps = [int(item.current) for item in cpu_temperatures_all if "Core" in item.label]
         else:
-            log(f"Failed to retrieve CPU temperature using psutil." , level="ERROR")
+            log("Failed to retrieve CPU temperature using psutil.", level="ERROR")
             return None
 
     else:
@@ -263,7 +271,7 @@ def get_cpu_temperatures():
             # Extract CPUs Temperatures
             cpu_temps = [int(re.search(r'\d+(?= degrees)', line).group()) for line in cpu_temp_lines if re.search(r'\d+(?= degrees)', line)]
         else:
-            log(f"Failed to retrieve CPU temperature using ipmitool." , level="ERROR")
+            log("Failed to retrieve CPU temperature using ipmitool.", level="ERROR")
             return None
 
     # Common Code
@@ -362,7 +370,10 @@ def get_system_event_log_filtered(filter = "" , label = ""):
     return system_event_log_obj
 
 # Get the System Event Log(s)
-def get_system_event_log(log_all = True , log_fans = True , log_temperatures = True):
+def get_system_event_log(log_all: bool = True,
+                         log_fans: bool = True,
+                         log_temperatures: bool = True
+                         ):
     # Declare Variables
     system_event_log = ""
     system_event_types = ""
@@ -390,7 +401,9 @@ def get_system_event_log(log_all = True , log_fans = True , log_temperatures = T
         system_event_filter = ""
 
     # Get System Events
-    system_event_log_obj = get_system_event_log_filtered(filter = system_event_filter , label = system_event_type)
+    system_event_log_obj = get_system_event_log_filtered(filter=system_event_filter,
+                                                         label=system_event_type
+                                                        )
 
     if system_event_log_obj:
         # System Log has some Entries
@@ -398,16 +411,19 @@ def get_system_event_log(log_all = True , log_fans = True , log_temperatures = T
     else:
         # System Log doesn't have any Entry
         system_event_log = None
-        
+
 
     # Process Results
 
     # If anything was returned
     if system_event_log:
         # Split Event Log by Line
-        reader = csv.reader(system_event_log.split('\n'), delimiter=',' , quoting=csv.QUOTE_ALL)
+        reader = csv.reader(system_event_log.split('\n'),
+                            delimiter=',',
+                            quoting=csv.QUOTE_ALL
+                            )
 
-        
+
         #reader = system_event_log.split('\n')
 
         # Process each Line Individually
@@ -497,7 +513,7 @@ def set_fan_speed(speed):
     for fan_zone in CONFIG["ipmi"]["fan_zones"]:
         # Extract Parameters
         fan_zone_id = fan_zone["id"]
-        fan_zone_name = fan_zone["name"]
+        # fan_zone_name = fan_zone["name"]
         fan_zone_description = fan_zone["description"]
         fan_zone_registers = fan_zone["registers"]
         fan_zone_max_speed_hex = fan_zone["max_speed_hex"]
@@ -590,7 +606,7 @@ def run_temperature_protection(label , id , current_temp):
             time.sleep(2)
 
             # SHUTDOWN to prevent Damage
-            os.system(f"shutdown -h now")
+            os.system("shutdown -h now")
         if current_temp >= CONFIG[id]["warning_temp"] and current_temp < CONFIG[id]["shutdown_temp"]:
             # Echo
             log(f"{label} OverTemperature Protection: Temperature = {current_temp}°C is higher than the Warning Setting = {CONFIG[id]['warning_temp']}°C" , level="WARNING")
@@ -640,7 +656,7 @@ def loop():
             log(f"Maximum DRIVE Temperature: {drives_temps_max}°C" , level="INFO")
         else:
             drives_temps_max = None
-            log(f"No DRIVE Detected" , level="INFO")
+            log("No DRIVE Detected" , level="INFO")
 
         # Get current HDD Temperatures
         hdd_temps_all = get_drives_temperatures(filterType = DiskType.HDD)
@@ -650,7 +666,7 @@ def loop():
             log(f"Maximum HDD Temperature: {hdd_temps_max}°C" , level="INFO")
         else:
             hdd_temps_max = None
-            log(f"No HDD Detected" , level="INFO")
+            log("No HDD Detected" , level="INFO")
 
         # Get current SSD Temperatures
         ssd_temps_all = get_drives_temperatures(filterType = DiskType.SSD)
@@ -660,7 +676,7 @@ def loop():
             log(f"Maximum SSD Temperature: {ssd_temps_max}°C" , level="INFO")
         else:
             ssd_temps_max = None
-            log(f"No SSD Detected" , level="INFO")
+            log("No SSD Detected" , level="INFO")
 
         # Get current NVME Temperatures
         nvme_temps_all = get_drives_temperatures(filterType = DiskType.NVME)
@@ -670,7 +686,7 @@ def loop():
             log(f"Maximum NVME Temperature: {nvme_temps_max}°C" , level="INFO")
         else:
             nvme_temps_max = None
-            log(f"No NVME Detected" , level="INFO")
+            log("No NVME Detected" , level="INFO")
 
         # Initialize new_fan_speed = current_fan_speed
         new_fan_speed_cpu = current_fan_speed
@@ -694,7 +710,7 @@ def loop():
         new_fan_speed_drive = run_temperature_controller(label = "Drive" , id = "drive" , current_temp = drives_temps_max , current_fan_speed = new_fan_speed_drive)
 
 
-       
+
         # Protect HDD Temperature
         run_temperature_protection(label = "HDD" , id = "hdd" , current_temp = hdd_temps_max)
 
@@ -787,8 +803,8 @@ def configure():
     #print(json.dumps(CONFIG, indent=4, sort_keys=True))
 
     # Echo
-    log(f"Setting Fan Control Mode to Optimal" , level="INFO")
-    log(f"This is needed because in some cases the Fan Speed is stuck, if already starting in Full Mode" , level="INFO")
+    log("Setting Fan Control Mode to Optimal", level="INFO")
+    log("This is needed because in some cases the Fan Speed is stuck, if already starting in Full Mode", level="INFO")
 
     # IPMI tool command to set the fan control mode to Optimal
     fan_speed_optimal = CONFIG["ipmi"]["fan_modes"]["optimal"]["registers"]
@@ -797,7 +813,7 @@ def configure():
     time.sleep(2)
 
     # Echo
-    log(f"Setting Fan Control Mode to Full (Manual)" , level="INFO")
+    log("Setting Fan Control Mode to Full (Manual)" , level="INFO")
 
     # IPMI tool command to set the fan control mode to manual (Full)
     fan_speed_full = CONFIG["ipmi"]["fan_modes"]["full"]["registers"]

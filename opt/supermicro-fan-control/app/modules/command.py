@@ -1,13 +1,13 @@
 # Core Libraries
-import os
+# import os
 import sys
 
 # Subprocess Python Module
-#from subprocess import Popen , PIPE, run
+# from subprocess import Popen , PIPE, run
 import subprocess
 
 # Import Custom Libraries
-from modules.Logging import log
+from modules.logging import log
 
 # Custom Wrapper Class to run System Commands
 class Command:
@@ -33,7 +33,7 @@ class Command:
     return_result = False
     check_return_code = True
     print_stdin = False
-    print_stdout = False 
+    print_stdout = False
     print_stderr = True
     debug = False
 
@@ -42,7 +42,16 @@ class Command:
 
 
     # Class Constructor
-    def __init__(self , command = None , return_result = False , check_return_code = True , print_stdin = False , print_stdout = False , print_stderr = True , debug = False):
+    def __init__(self,
+                 command = None,
+                 return_result: bool = False,
+                 check_return_code: bool = True,
+                 print_stdin: bool = False,
+                 print_stdout: bool = False,
+                 print_stderr: bool = True,
+                 debug: bool = False
+                 ) -> None:
+
         # Command Inputs / Results
         self.stdout = None
         self.stderr = None
@@ -51,7 +60,7 @@ class Command:
 
         # Subprocess POpen Object
         self.pobj = None
-        
+
         # Command in Array Form
         self.command_array = None
 
@@ -80,7 +89,10 @@ class Command:
             self.run(command = command)
 
     # Run Command
-    def run(self , command):
+    def run(self,
+            command: list | str
+            ) -> None | str:
+
         # Save Command Array
         if not isinstance(command[0] , list):
             # Encapsulate everything in an external List
@@ -93,12 +105,12 @@ class Command:
         log(f"Running Command (Complete Array): {self.command_array}" , level="DEBUG")
 
         # Debugging
-        #rows = len(new_command)
-        #cols = len(new_command[0])
-        #trows = type(new_command)
-        #tcols = type(new_command[0])
-        #print(f"Array Dimension: {rows} Rows x {cols} Columns")
-        #print(f"Types: {trows} (Rows) - {tcols} (Cols)")
+        # rows = len(new_command)
+        # cols = len(new_command[0])
+        # trows = type(new_command)
+        # tcols = type(new_command[0])
+        # print(f"Array Dimension: {rows} Rows x {cols} Columns")
+        # print(f"Types: {trows} (Rows) - {tcols} (Cols)")
 
         # Count Number of Pipes
         self.number_pipes = len(self.command_array)
@@ -108,7 +120,7 @@ class Command:
             self.check_return_code = [self.check_return_code] * self.number_pipes
         elif len(self.check_return_code) != self.number_pipes:
             self.check_return_code = [self.check_return_code[0]] * self.number_pipes
-            
+
         # Size Arrays Appropriately
         self.stdout = [None] * self.number_pipes
         self.stderr = [None] * self.number_pipes
@@ -116,7 +128,7 @@ class Command:
         self.pobj = [None] * self.number_pipes
         self.returncode = [None] * self.number_pipes
         self.command_string_pipes = [None] * self.number_pipes
-        
+
         # Build Command String overall
         self.command_string_overall = ""
 
@@ -199,7 +211,7 @@ class Command:
                     # ...
                     # (not implemented)
 
-        
+
         # Get Final Result
         retcode = self.returncode[-1]
 
@@ -208,11 +220,17 @@ class Command:
             return self.stdout[-1]
 
     # Get Result
-    def getResult(self , decode=True):
+    def getResult(self,
+                  decode=True
+                  ) -> str | bytes:
+
         return self.getOutput(decode)
 
     # Get Output
-    def getOutput(self , decode=True):
+    def getOutput(self,
+                  decode=True
+                  ) -> str | bytes:
+
         if decode:
             return self.stdout[-1].decode()
         else:
