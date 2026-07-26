@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Determine toolpath if not set already
+# Determine SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH if not set already
 relativepath="./" # Define relative path to go from this script to the root level of the tool
-if [[ ! -v toolpath ]]; then scriptpath=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd ); toolpath=$(realpath --canonicalize-missing ${scriptpath}/${relativepath}); fi
+if [[ ! -v SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH ]]; then scriptpath=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd ); SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH=$(realpath --canonicalize-missing ${scriptpath}/${relativepath}); fi
 
 # Load functions
-source ${toolpath}/functions.sh
+source ${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/functions.sh
 
 # Define Paths
 SUPERMICRO_FAN_CONTROL_CONFIG_PATH="/etc/supermicro-fan-control"
@@ -120,16 +120,19 @@ else
 fi
 
 # Install App
-cp -r opt/supermicro-fan-control/* /opt/supermicro-fan-control/
+cp -r app /opt/supermicro-fan-control/
+
+# Install Wrapper
+cp scripts/wrapper.sh /opt/supermicro-fan-control/wrapper.sh
 
 # Ensure Proper Permissions
 chmod 755 /opt/supermicro-fan-control/app/supermicro-fan-control.py
 
 # Install Example Settings
-cp -r etc/supermicro-fan-control/* "${SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/"
+cp -r files/etc/supermicro-fan-control/* "${SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/"
 
 # Install Systemd Service
-cp etc/systemd/system/supermicro-fan-control.service /etc/systemd/system/supermicro-fan-control.service
+cp files/etc/systemd/system/supermicro-fan-control.service /etc/systemd/system/supermicro-fan-control.service
 
 # Reload Systemd Daemon (at least to suppress warnings)
 systemctl daemon-reload

@@ -1,20 +1,20 @@
 #!/bin/bash
 
-# Determine toolpath if not set already
+# Determine SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH if not set already
 relativepath="./" # Define relative path to go from this script to the root level of the tool
-if [[ ! -v toolpath ]]; then scriptpath=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd ); toolpath=$(realpath --canonicalize-missing ${scriptpath}/${relativepath}); fi
+if [[ ! -v SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH ]]; then scriptpath=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd ); SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH=$(realpath --canonicalize-missing ${scriptpath}/${relativepath}); fi
 
 # Build Root
-buildroot="${toolpath}/build"
+buildroot="${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/build"
 
 # Dist Root
-distroot="${toolpath}/dist"
+distroot="${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/dist"
 
 # Create venv
-python3 -m venv "${toolpath}/venv"
+python3 -m venv "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/venv"
 
 # Activate venv
-source "${toolpath}/venv/bin/activate"
+source "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/venv/bin/activate"
 
 # Upgrade pip
 pip install --upgrade pip
@@ -34,7 +34,7 @@ mkdir -p ${distroot}/dist
 mkdir -p ${distroot}/dist-onefile
 
 # Copy Sources
-cp "${toolpath}/opt/supermicro-fan-control/bin/supermicro-fan-control.py" "${buildroot}/supermicro-fan-control.py"
+cp "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/opt/supermicro-fan-control/bin/supermicro-fan-control.py" "${buildroot}/supermicro-fan-control.py"
 
 # Change Directory to tmp Folder
 cd "${buildroot}" || exit
@@ -44,7 +44,7 @@ python -m nuitka --standalone --follow-imports --onefile supermicro-fan-control.
 
 # Build using Nuitka (needed in order to bypass some noexec Permission Issues ?)
 # https://github.com/Nuitka/Nuitka/issues/2246
-#python -m nuitka --standalone --follow-imports --onefile --onefile-tempdir-spec=/opt/supermicro-fan-control/tmp supermicro-fan-control.py
+# python -m nuitka --standalone --follow-imports --onefile --onefile-tempdir-spec=/opt/supermicro-fan-control/tmp supermicro-fan-control.py
 
 # Move into the Respective Folders
 mv supermicro-fan-control.dist/* "${distroot}/dist/"
