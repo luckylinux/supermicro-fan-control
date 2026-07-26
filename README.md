@@ -14,6 +14,7 @@ For a Protection-Only (Overtemperature Protection) see my Separate [Cooling Fail
 - Temperature Controller for Supermicro IPMI Devices ("Variable Fan Speed")
 - Temperature Warning (BEEP) when System Cooling cannot keep up with Devices Temperatures
 - Temperature Protection (SHUTDOWN) when System Cooling cannot keep up with Devices Temperatures
+- 
 
 # Requirements
 At the moment this was developed for use with GNU/Linux.

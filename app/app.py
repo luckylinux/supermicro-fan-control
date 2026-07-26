@@ -80,13 +80,14 @@ class Data:
     fan_speed_readings: dict
     fan_speed_references: dict
     bmc_event_log: list
+    bmc_sensors: list
 
     # Class Constructor
     def __init__(self) -> None:
         # Initialize Configuration
         self.config = {}
 
-        # Initialize Temperatures Reading
+        # Initialize Temperatures Readings
         self.temperature_readings = {}
 
         # Initialize Fan Speed Readings
@@ -94,6 +95,9 @@ class Data:
 
         # Initialize Fan Speed References
         self.fan_speed_references = {}
+
+        # Initialize BMC Sensors Readings
+        self.bmc_sensors_readings = []
 
         # Initialize BMC Event Log
         self.bmc_event_log = []
@@ -1041,31 +1045,45 @@ def get_fan_speeds():
     return global_data.fan_speed_readings
 
 
-@api.get("/event-log",
+@api.get("/bmc/sensors",
+summary="Query BMC Sensors",
+description="Returns Information about BMC Sensors",
+# This performs Data Validation - if Output is invalid, Program crashes
+# response_model=SystemStatusResponse
+)
+def get_bmc_sensors():
+    return global_data.bmc_sensors_readings
+
+@api.get("/bmc/event-log",
          summary="Query System Event Log",
          description="Returns BMC System Event Log",
          # This performs Data Validation - if Output is invalid, Program crashes
          # response_model=SystemStatusResponse
 )
-def get_event_log():
+def get_bmc_event_log():
     return global_data.bmc_event_log
 
 
 def start_server():
+    # Get Web Server Configuration
     HTTP_BIND_HOST = global_data.config.get("web_server", {}).get("bind_address", "127.0.0.1")
     HTTP_BIND_PORT = global_data.config.get("web_server", {}).get("bind_port", 8080)
+
     # Get the folder where app.py actually lives
     # APP_DIR = os.path.dirname(os.path.abspath(__file__))
     # log(f"Set APP_DIR to {APP_DIR} for uvicorn")
 
-    # Setting reload to False stops the child process loop collision, since we launch uvicorn from inside Python Application
+    # Setting reload to False is required, since we launch uvicorn from inside Python Application
     config = uvicorn.Config(app=api,
                             host=HTTP_BIND_HOST,
                             port=HTTP_BIND_PORT,
                             reload=False,
                             )
 
+    # Create Uvicorn Server
     server = uvicorn.Server(config)
+
+    # Run Uvicorn Server
     server.run()
 
 def start_controller():
@@ -1110,9 +1128,9 @@ if __name__ == "__main__":
     # Parse
     args = parser.parse_args()
 
+    # Debug
     log(f"Parsed CLI Arguments: operation={args.operation}")
     log(f"Parsed CLI Arguments: {args}")
-
 
     if args.operation == "start":
         start_controller()
