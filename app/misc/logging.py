@@ -6,8 +6,8 @@ from enum import Enum
 # Import Global Variables
 import globals
 
-# from modules.Globals import *
-# import modules.Globals as Globals
+# from misc.Globals import *
+# import misc.Globals as Globals
 # import globals.CONFIG as CONFIG
 # import globals.LOG_LEVEL as LOG_LEVEL
 # from globals.LOG_LEVEL import LOG_LEVEL

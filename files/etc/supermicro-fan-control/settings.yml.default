@@ -5,7 +5,7 @@ general:
         LC_TIME: "en_DK.UTF-8"
         LC_ALL: "en_DK.UTF-8"
     debug: False
-    
+
 log:
     level: "INFO"
 
@@ -13,7 +13,7 @@ beep:
     frequency: 2500
     duration: 1250
     delay: 1250
-    repetitions: 5 
+    repetitions: 5
 
 # Generic CPU
 cpu:
@@ -58,4 +58,21 @@ fan:
     max_speed: 100
     min_speed: 10
     inc_speed_step: 5
-    dec_speed_step: 1 
+    dec_speed_step: 1
+
+# Web Server API
+web_server:
+    bind_address: "127.0.0.1"
+    bind_port: 8080
+
+    # authentication:
+    #     # Types: oidc, null
+    #     type: oidc
+
+    #     # OIDC Configuration
+    #     client_id: ""
+    #     client_secret: ""
+    #     discovery_url: "https://auth.MYDOMAIN.TLD/application/o/<SLUG>/.well-known/openid-configuration"
+    #     token_url: "https://auth.MYDOMAIN.TLD/application/o/token/"
+    #     authorize_url: "https://auth.MYDOMAIN.TLD/application/o/authorize/"
+    #     userinfo_url: "https://auth.MYDOMAIN.TLD/application/o/userinfo/"

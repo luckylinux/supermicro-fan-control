@@ -10,8 +10,5 @@ cd "${SUPERMICRO_FAN_CONTROL_ROOT}" || exit
 # Active Virtual Environment
 source venv/bin/activate
 
-# Change to "app" Working Directory
-cd "${SUPERMICRO_FAN_CONTROL_ROOT}/app" || exit
-
-# Execute Python Application
-python3 -m app "$@"
+# Run Application
+uvicorn app:app --host ${SUPERMICRO_FAN_CONTROL_HTTP_BIND_HOST:-127.0.0.1} --port ${SUPERMICRO_FAN_CONTROL_HTTP_BIND_PORT:-8080}
