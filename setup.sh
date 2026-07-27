@@ -10,10 +10,16 @@ source ${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/functions.sh
 # Define Paths
 SUPERMICRO_FAN_CONTROL_CONFIG_PATH="/etc/supermicro-fan-control"
 
-# Install venv Package
+# Install venv and other Packages
 python_version=$(python3 -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')
 
-apt-get install "python${python_version}-venv"
+apt-get install "python${python_version}-venv" ipmitool
+
+# Create Include Path for amdsmi
+if [[ -d "/usr/libexec/amdsmi_cli" ]]
+then
+    echo "/usr/libexec/amdsmi_cli" > /opt/fan-controller/venv/lib64/python${python_version}/site-packages/amdsmi.pth
+fi
 
 # Create Folders
 mkdir -p "${SUPERMICRO_FAN_CONTROL_CONFIG_PATH}"

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # Core Libraries
+from math import nan
 from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, Depends, HTTPException, Query, Path, status
 from fastapi.security import OpenIdConnect
@@ -26,7 +27,7 @@ import yaml
 from yaml.loader import SafeLoader
 
 # Python Pretty Print Module
-# import pprint
+import pprint
 
 # Python json Module
 import json
@@ -62,7 +63,7 @@ import globals
 from misc.command import Command
 from misc.logging import log
 from misc.deep_merge import deep_merge_dicts, deep_merge_lists
-from misc.datatypes import isint, isfloat
+from misc.datatypes import isint, isfloat, float_or_none, int_or_none
 
 
 
@@ -77,10 +78,11 @@ class Data:
     # Declare Attributes
     config: dict
     temperature_readings: dict
+    voltages_readings: dict
     fan_speed_readings: dict
     fan_speed_references: dict
     bmc_event_log: list
-    bmc_sensors: list
+    bmc_sensors_readings: dict
 
     # Class Constructor
     def __init__(self) -> None:
@@ -90,6 +92,9 @@ class Data:
         # Initialize Temperatures Readings
         self.temperature_readings = {}
 
+        # Initialize Voltages Readings
+        self.voltages_readings = {}
+
         # Initialize Fan Speed Readings
         self.fan_speed_readings = {}
 
@@ -97,7 +102,7 @@ class Data:
         self.fan_speed_references = {}
 
         # Initialize BMC Sensors Readings
-        self.bmc_sensors_readings = []
+        self.bmc_sensors_readings = {}
 
         # Initialize BMC Event Log
         self.bmc_event_log = []
@@ -294,12 +299,229 @@ class GlobalController:
                 driveTypeStr = "unknown"
 
         if filterType is None:
-            global_data.temperature_readings["drives"] = drives
-        else:
-            global_data.temperature_readings[driveTypeStr] = drives
+            driveTypeStr = "all"
+
+        drives_dict = {}
+        if len(temps) > 0:
+            drives_dict["average"] = sum(temps) / len(temps)
+            drives_dict["maximum"] = max(temps)
+            drives_dict["minimum"] = min(temps)
+
+        drives_dict["details"] = drives
+
+        global_data.temperature_readings["drives"].update({driveTypeStr: drives_dict})
 
         # Return Result
         return temps
+
+    # Get RAM Temperature(s)
+    def get_ram_temperatures(self,
+                              filterType = None
+                              ) -> list | None:
+        # Initialize Array
+        temps = []
+        dimm_temperatures = {}
+
+        # Initialize Global Dictionary if needed
+        if "ram" not in  global_data.temperature_readings:
+            global_data.temperature_readings["ram"] = {}
+
+        # Check all DIMMs
+        dimm_pattern = re.compile(r"^(DIMM[A-Z]+[1234]+\s+Temp)", re.IGNORECASE)
+        dimm_lines = [item for item in global_data.bmc_sensors_readings.get("lines", []) if dimm_pattern.match(item)]
+
+        if dimm_lines:
+            reader = csv.reader(dimm_lines, delimiter=',')
+            for index, row in enumerate(reader):
+                # Get Label
+                dimm_label = row[0]
+
+                # Get Value
+                dimm_temperature = float_or_none(row[1])
+
+                # Get Unit
+                dimm_unit = row[2]
+
+                # Get DIMM Status
+                dimm_status = row[3]
+
+                # Lower Non-Recoverable (LNR)
+                dimm_lnr = float_or_none(row[4])
+
+                # Lower Critical (LC)
+                dimm_lc = float_or_none(row[5])
+
+                # Lower Non-Critical (LNC)
+                dimm_lnc = float_or_none(row[6])
+
+                # Upper Non-Critical (UNC)
+                dimm_unc = float_or_none(row[7])
+
+                # Upper Critical (UC)
+                dimm_uc = float_or_none(row[8])
+
+                # Upper Non-Recoverable (UNR)
+                dimm_unr = float_or_none(row[9])
+
+                # If Speed is a valid Number
+                # if isfloat(fan_value) is True:
+                if dimm_temperature is not None:
+                    # fan_speed_number = float(fan_value)
+                    # if not math.isnan(number) and not math.isinf(number):
+                    log(f"Current {dimm_label} Temperature: {dimm_temperature} {dimm_unit}" , level="INFO")
+
+                    # Add to Array
+                    temps.append(dimm_temperature)
+                # else:
+                #     fan_speed_number = None
+
+                # Initialize Dictionary
+                dimm_dict = {}
+                dimm_dict["id"] = dimm_label
+                dimm_dict["temperature"] = dimm_temperature
+                dimm_dict["unit"] = dimm_unit
+                dimm_dict["status"] = dimm_status
+                dimm_dict["lower_non_recoverable"] = dimm_lnr
+                dimm_dict["lower_critical"] = dimm_lc
+                dimm_dict["lower_non_critical"] = dimm_lnc
+                dimm_dict["upper_non_critical"] = dimm_unc
+                dimm_dict["upper_critical"] = dimm_uc
+                dimm_dict["upper_non_recoverable"] = dimm_unr
+
+                # Add to Dictionary
+                dimm_temperatures.update({dimm_label: dimm_dict})
+
+               # if temp is not None:
+               #     if driveType == filterType or filterType is None:
+               #         # Echo
+               #        log(f"{driveTypeStr} RAM DIMM {filteredid} has Temperature = {temp}°C" , level="INFO")
+               #         # Add to Array
+               #         temps.append(temp)
+               #
+               #        # Add to Dictionary
+               #        drives.update({filteredid: temp})
+
+        ram_dict = {}
+        if len(temps) > 0:
+            ram_dict["average"] = sum(temps) / len(temps)
+            ram_dict["maximum"] = max(temps)
+            ram_dict["minimum"] = min(temps)
+
+        ram_dict["details"] = dimm_temperatures
+
+        global_data.temperature_readings["ram"].update(ram_dict)
+
+        # Return Result
+        return temps
+
+
+    # Get the current PCH Temperature(s)
+    def get_pch_temperatures(self) -> float | int | None:
+        # Initialize Array
+        temps = []
+        pch_temperatures = {}
+
+        # Initialize Global Dictionary if needed
+        if "pch" not in  global_data.temperature_readings:
+            global_data.temperature_readings["pch"] = {}
+
+        # Check PCH
+        pch_pattern = re.compile(r"^(PCH\s+Temp)", re.IGNORECASE)
+        pch_lines = [item for item in global_data.bmc_sensors_readings.get("lines", []) if pch_pattern.match(item)]
+
+        if pch_lines:
+            reader = csv.reader(pch_lines, delimiter=',')
+            for index, row in enumerate(reader):
+                # Get Label
+                pch_label = row[0]
+
+                # Get Value
+                pch_temperature = float_or_none(row[1])
+
+                # Get Unit
+                pch_unit = row[2]
+
+                # Get DIMM Status
+                pch_status = row[3]
+
+                # Lower Non-Recoverable (LNR)
+                pch_lnr = float_or_none(row[4])
+
+                # Lower Critical (LC)
+                pch_lc = float_or_none(row[5])
+
+                # Lower Non-Critical (LNC)
+                pch_lnc = float_or_none(row[6])
+
+                # Upper Non-Critical (UNC)
+                pch_unc = float_or_none(row[7])
+
+                # Upper Critical (UC)
+                pch_uc = float_or_none(row[8])
+
+                # Upper Non-Recoverable (UNR)
+                pch_unr = float_or_none(row[9])
+
+                # If Speed is a valid Number
+                # if isfloat(fan_value) is True:
+                if pch_temperature is not None:
+                    # fan_speed_number = float(fan_value)
+                    # if not math.isnan(number) and not math.isinf(number):
+                    # log(f"Current {pch_label} (Temperature): {pch_temperature} {pch_unit}" , level="INFO")
+
+                    # Add to Array
+                    temps.append(pch_temperature)
+                # else:
+                #     fan_speed_number = None
+
+                # Initialize Dictionary
+                pch_dict = {}
+                pch_dict["id"] = pch_label
+                pch_dict["temperature"] = pch_temperature
+                pch_dict["unit"] = pch_unit
+                pch_dict["status"] = pch_status
+                pch_dict["lower_non_recoverable"] = pch_lnr
+                pch_dict["lower_critical"] = pch_lc
+                pch_dict["lower_non_critical"] = pch_lnc
+                pch_dict["upper_non_critical"] = pch_unc
+                pch_dict["upper_critical"] = pch_uc
+                pch_dict["upper_non_recoverable"] = pch_unr
+
+                # Add to Dictionary
+                pch_temperatures.update({pch_label: pch_dict})
+
+               # if temp is not None:
+               #     if driveType == filterType or filterType is None:
+               #         # Echo
+               #        log(f"{driveTypeStr} RAM DIMM {filteredid} has Temperature = {temp}°C" , level="INFO")
+               #         # Add to Array
+               #         temps.append(temp)
+               #
+               #        # Add to Dictionary
+               #        drives.update({filteredid: temp})
+
+        pch_dict = {}
+        if len(temps) > 0:
+            pch_dict["average"] = sum(temps) / len(temps)
+            pch_dict["maximum"] = max(temps)
+            pch_dict["minimum"] = min(temps)
+
+        pch_dict["details"] = pch_temperatures
+
+        global_data.temperature_readings["pch"].update(pch_dict)
+
+        # Return Result
+        return temps
+
+    # Get the current NIC Temperature(s)
+    def get_nic_temperatures(self) -> float | int | None:
+        # Dummy Value for now
+        return 50.0
+
+    # Get the current GPU Temperature(s)
+    def get_gpu_temperatures(self) -> float | int | None:
+        # Dummy Value for now
+        return 50.0
 
     # Get the current CPU Temperature(s)
     def get_cpu_temperatures(self) -> float | int | None:
@@ -582,39 +804,199 @@ class GlobalController:
         # Save in Global Data
         global_data.bmc_event_log = events
 
+    # Get bmc Sensor(s)
+    def get_bmc_sensors(self):
+        cmd = [["ipmitool" , "-c" , "sensor"]]
+        sensor_obj = Command(command = cmd , return_result = True , check_return_code = True)
+        time.sleep(2)
+        sensor_lines = sensor_obj.getOutput(decode=True)
+
+        sensors_data_lines = []
+        sensors_data_array = []
+
+        if sensor_lines:
+            # Save the Line as it is
+            sensor_lines_split = sensor_lines.split('\n')
+            sensors_data_lines = sensor_lines_split
+
+            # Transform into a Structured Form
+            reader = csv.reader(sensor_lines.split('\n'), delimiter=',')
+
+            for row in reader:
+                # If Array is NOT empty
+                if row is not None and len(row) > 0:
+                    sensors_data_array.append(row)
+
+        # Add to Global Data
+        current_time = datetime.datetime.now()
+        global_data.bmc_sensors_readings["time"] = current_time
+        global_data.bmc_sensors_readings["timestamp"] = current_time.timestamp()
+        global_data.bmc_sensors_readings["lines"] = sensors_data_lines
+        global_data.bmc_sensors_readings["array"] = sensors_data_array
+
+        # Debug
+        # pprint.pprint(sensors_data_lines)
+
     # Get the current Fan Speed(s)
     def get_fan_speeds(self):
-        cmd = [["ipmitool" , "-c" , "sensor"] , ["grep" , "-Ei" , "'^FAN|^MB-FAN|^BPN-FAN'"]]
-        fan_speed_obj = Command(command = cmd , return_result = True , check_return_code = True)
-        time.sleep(2)
-        fan_speed_lines = fan_speed_obj.getOutput(decode=True)
+        # cmd = [["ipmitool" , "-c" , "sensor"] , ["grep" , "-Ei" , "'^FAN|^MB-FAN|^BPN-FAN'"]]
+        # fan_speed_obj = Command(command = cmd , return_result = True , check_return_code = True)
+        # time.sleep(2)
+        # fan_speed_lines = fan_speed_obj.getOutput(decode=True)
+
+        # Compile the case-insensitive regular expression pattern
+        fan_pattern = re.compile(r"^(FAN|MB-FAN|BPN-FAN)", re.IGNORECASE)
+        fan_speed_lines = [item for item in global_data.bmc_sensors_readings.get("lines", []) if fan_pattern.match(item)]
+
+        # Debug
+        # pprint.pprint(fan_speed_lines)
 
         fan_speeds = {}
 
         if fan_speed_lines:
             #for fan_speed in fan_speed_lines:
             #    print(f"Fan Speed: {fan_speed}")
-            reader = csv.reader(fan_speed_lines.split('\n'), delimiter=',')
-            for row in reader:
+            # reader = csv.reader(fan_speed_lines.split('\n'), delimiter=',')
+            reader = csv.reader(fan_speed_lines, delimiter=',')
+            for index, row in enumerate(reader):
                 # If Array is NOT empty
                 if row is not None and len(row) > 0:
                     # Get Label
-                    label = row[0]
+                    fan_label = row[0]
 
                     # Get Value
-                    value = row[1]
+                    fan_speed = float_or_none(row[1])
+
+                    # Get Measurement Unit
+                    fan_unit = row[2]
+
+                    # Get Fan Status
+                    fan_status = row[3]
+
+                    # Lower Non-Recoverable (LNR)
+                    fan_lnr = float_or_none(row[4])
+
+                    # Lower Critical (LC)
+                    fan_lc = float_or_none(row[5])
+
+                    # Lower Non-Critical (LNC)
+                    fan_lnc = float_or_none(row[6])
+
+                    # Upper Non-Critical (UNC)
+                    fan_unc = float_or_none(row[7])
+
+                    # Upper Critical (UC)
+                    fan_uc = float_or_none(row[8])
+
+                    # Upper Non-Recoverable (UNR)
+                    fan_unr = float_or_none(row[9])
 
                     # If Speed is a valid Number
-                    if isfloat(value) is True:
-                        number = float(value)
-                        #if not math.isnan(number) and not math.isinf(number):
-                        log(f"Current {label} Fan Speed: {number} rpm" , level="INFO")
+                    # if isfloat(fan_value) is True:
+                    if fan_speed is not None:
+                        # fan_speed_number = float(fan_value)
+                        # if not math.isnan(number) and not math.isinf(number):
+                        log(f"Current {fan_label} Fan Speed: {fan_speed} rpm" , level="INFO")
+                    # else:
+                    #     fan_speed_number = None
+
+                    # Initialize Dictionary
+                    fan_dict = {}
+                    fan_dict["id"] = fan_label
+                    fan_dict["speed"] = fan_speed
+                    fan_dict["unit"] = fan_unit
+                    fan_dict["status"] = fan_status
+                    fan_dict["lower_non_recoverable"] = fan_lnr
+                    fan_dict["lower_critical"] = fan_lc
+                    fan_dict["lower_non_critical"] = fan_lnc
+                    fan_dict["upper_non_critical"] = fan_unc
+                    fan_dict["upper_critical"] = fan_uc
+                    fan_dict["upper_non_recoverable"] = fan_unr
 
                     # Add to Dictionary
-                    fan_speeds.update({label: value})
+                    fan_speeds.update({fan_label: fan_dict})
 
             # Add to Global Data
             global_data.fan_speed_readings = fan_speeds
+
+    # Get Voltages
+    def get_voltages(self):
+        # cmd = [["ipmitool" , "-c" , "sensor"] , ["grep" , "-Ei" , "'Volts'"]]
+        # voltage_obj = Command(command = cmd , return_result = True , check_return_code = True)
+        # time.sleep(2)
+        # voltage_lines = voltage_obj.getOutput(decode=True)
+
+        voltages = {}
+
+        # Compile the case-insensitive regular expression pattern
+        voltage_pattern = re.compile(r"Volts", re.IGNORECASE)
+        voltage_lines = [item for item in global_data.bmc_sensors_readings.get("lines", []) if voltage_pattern.match(item)]
+
+        # Debug
+        # pprint.pprint(voltage_lines)
+
+        if voltage_lines:
+            reader = csv.reader(voltage_lines, delimiter=',')
+            for id, row in enumerate(reader):
+                # If Array is NOT empty
+                if row is not None and len(row) > 0:
+                    # Get Label
+                    voltage_label = row[0]
+
+                    # Get Value
+                    voltage_value = float_or_none(row[1])
+
+                    # Get Measurement Unit
+                    voltage_unit = row[2]
+
+                    # Get Fan Status
+                    voltage_status = row[3]
+
+                    # Lower Non-Recoverable (LNR)
+                    voltage_lnr = float_or_none(row[4])
+
+                    # Lower Critical (LC)
+                    voltage_lc = float_or_none(row[5])
+
+                    # Lower Non-Critical (LNC)
+                    voltage_lnc = float_or_none(row[6])
+
+                    # Upper Non-Critical (UNC)
+                    voltage_unc = float_or_none(row[7])
+
+                    # Upper Critical (UC)
+                    voltage_uc = float_or_none(row[8])
+
+                    # Upper Non-Recoverable (UNR)
+                    voltage_unr = float_or_none(row[9])
+
+                    # If Speed is a valid Number
+                    # if isfloat(fan_value) is True:
+                    if voltage_value is not None:
+                        # fan_speed_number = float(fan_value)
+                        # if not math.isnan(number) and not math.isinf(number):
+                        log(f"Current {voltage_label} Voltage: {voltage_value} V" , level="INFO")
+                    # else:
+                    #     fan_speed_number = None
+
+                    # Initialize Dictionary
+                    voltage_dict = {}
+                    voltage_dict["id"] = voltage_label
+                    voltage_dict["voltage"] = voltage_value
+                    voltage_dict["unit"] = voltage_unit
+                    voltage_dict["status"] = voltage_status
+                    voltage_dict["lower_non_recoverable"] = voltage_lnr
+                    voltage_dict["lower_critical"] = voltage_lc
+                    voltage_dict["lower_non_critical"] = voltage_lnc
+                    voltage_dict["upper_non_critical"] = voltage_unc
+                    voltage_dict["upper_critical"] = voltage_uc
+                    voltage_dict["upper_non_recoverable"] = voltage_unr
+
+                    # Add to Dictionary
+                    voltages.update({voltage_label: voltage_dict})
+
+            # Add to Global Data
+            global_data.voltages_readings = voltages
 
     # Set the fan speed
     def set_fan_speed(self,
@@ -769,6 +1151,15 @@ class GlobalController:
     # Infinite Loop
     def loop(self):
         while True:
+            # Get and cache all BMC Sensors
+            self.get_bmc_sensors()
+
+            # Get and Log Current Fan Speed
+            self.get_fan_speeds()
+
+            # Get and Log Voltages
+            self.get_voltages()
+
             # Get current CPU Temperatures
             cpu_temp = self.get_cpu_temperatures()
 
@@ -776,13 +1167,31 @@ class GlobalController:
             log(f"Current CPU Temperature: {cpu_temp}°C" , level="INFO")
 
             # Get current RAM Temperatures
-            # ...
+            ram_temp = self.get_ram_temperatures()
+
+            # Print current RAM Temperature to Console
+            log(f"Current RAM Temperature: {ram_temp}°C" , level="INFO")
 
             # Get current Chipset Temperatures
-            # ...
+            pch_temp = self.get_pch_temperatures()
+
+            # Print current PCH Temperature to Console
+            log(f"Current PCH Temperature: {pch_temp}°C" , level="INFO")
 
             # Get current HBA Temperatures
-            # ...
+            hba_temp = self.get_pch_temperatures()
+
+            log(f"Current HBA Temperature: {hba_temp}°C" , level="INFO")
+
+            # Get current NIC Temperatures
+            nic_temp = self.get_nic_temperatures()
+
+            log(f"Current NIC Temperature: {nic_temp}°C" , level="INFO")
+
+            # Get current GPU Temperatures
+            gpu_temp = self.get_gpu_temperatures()
+
+            log(f"Current GPU Temperature: {gpu_temp}°C" , level="INFO")
 
             # Get current ALL Drive Temperatures
             drives_temps_all = self.get_drives_temperatures()
@@ -830,6 +1239,8 @@ class GlobalController:
             new_fan_speed_hdd = current_fan_speed
             new_fan_speed_ssd = current_fan_speed
             new_fan_speed_nvme = current_fan_speed
+            new_fan_speed_nic = current_fan_speed
+            new_fan_speed_gpu = current_fan_speed
 
             # Protect CPU Temperature
             # TO_BE_IMPLEMENTED
@@ -870,11 +1281,32 @@ class GlobalController:
             new_fan_speed_nvme = self.run_temperature_controller(label = "NVME" , id = "nvme" , current_temp = nvme_temps_max , current_fan_speed = new_fan_speed_nvme)
 
 
+            # Protect NIC Temperature
+            # self.run_temperature_protection(label = "NIC" , id = "ssd" , current_temp = nic_temps_max)
+
+            # Regulate Fan Speed based on NIC Temperature
+            # new_fan_speed_nic = self.run_temperature_controller(label = "NIC" , id = "nic" , current_temp = nic_temps_max , current_fan_speed = new_fan_speed_nic)
+
+
+
+            # Protect GPU Temperature
+            # self.run_temperature_protection(label = "GPU" , id = "gpu" , current_temp = gpu_temps_max)
+
+            # Regulate Fan Speed based on NIC Temperature
+            # new_fan_speed_gpu = self.run_temperature_controller(label = "GPU" , id = "gpu" , current_temp = gpu_temps_max , current_fan_speed = new_fan_speed_gpu)
 
 
             # Get worst Case
             #new_fan_speed = max([new_fan_speed_cpu , new_fan_speed_drive])
-            new_fan_speed = max([new_fan_speed_cpu , new_fan_speed_drive , new_fan_speed_hdd , new_fan_speed_ssd , new_fan_speed_nvme])
+            new_fan_speed = max(
+                                [
+                                    new_fan_speed_cpu,
+                                    new_fan_speed_drive,
+                                    new_fan_speed_hdd,
+                                    new_fan_speed_ssd,
+                                    new_fan_speed_nvme
+                                ]
+                                )
 
             # Set Fan Speed
             if new_fan_speed != current_fan_speed:
@@ -889,9 +1321,6 @@ class GlobalController:
 
                 # Prevent e.g. (external) manual testing from "blocking" the Fan Speed to a Low Value in case Fan Speed is already at 100%
                 self.set_fan_speed(new_fan_speed)
-
-            # Get and Log Current Fan Speed
-            self.get_fan_speeds()
 
             # Get and Log IPMI System Event Log
             try:
@@ -1010,6 +1439,12 @@ def get_temperatures():
 def get_temperatures_cpu():
     return global_data.temperature_readings.get("cpu")
 
+@api.get("/temperatures/ram",
+         # This performs Data Validation - if Output is invalid, Program crashes
+         # response_model=SystemStatusResponse
+)
+def get_temperatures_ram():
+    return global_data.temperature_readings.get("ram")
 
 @api.get("/temperatures/hdd",
          # This performs Data Validation - if Output is invalid, Program crashes
@@ -1043,6 +1478,16 @@ def get_temperatures_nvme():
 )
 def get_fan_speeds():
     return global_data.fan_speed_readings
+
+
+@api.get("/voltages",
+summary="Query Vltages",
+description="Returns Information about Voltages",
+# This performs Data Validation - if Output is invalid, Program crashes
+# response_model=SystemStatusResponse
+)
+def get_voltages():
+    return global_data.voltages_readings
 
 
 @api.get("/bmc/sensors",

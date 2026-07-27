@@ -62,17 +62,22 @@ fan:
 
 # Web Server API
 web_server:
+    # Enable Web Server
+    enabled: true
+
+    # Bind Address / Port
     bind_address: "127.0.0.1"
     bind_port: 8080
 
-    # authentication:
-    #     # Types: oidc, null
-    #     type: oidc
+    # Authentication
+    authentication:
+        # Types: oidc, null
+        type: null
 
-    #     # OIDC Configuration
-    #     client_id: ""
-    #     client_secret: ""
-    #     discovery_url: "https://auth.MYDOMAIN.TLD/application/o/<SLUG>/.well-known/openid-configuration"
-    #     token_url: "https://auth.MYDOMAIN.TLD/application/o/token/"
-    #     authorize_url: "https://auth.MYDOMAIN.TLD/application/o/authorize/"
-    #     userinfo_url: "https://auth.MYDOMAIN.TLD/application/o/userinfo/"
+        # OIDC Configuration
+        # client_id: ""
+        # client_secret: ""
+        # discovery_url: "https://auth.MYDOMAIN.TLD/application/o/<SLUG>/.well-known/openid-configuration"
+        # token_url: "https://auth.MYDOMAIN.TLD/application/o/token/"
+        # authorize_url: "https://auth.MYDOMAIN.TLD/application/o/authorize/"
+        # userinfo_url: "https://auth.MYDOMAIN.TLD/application/o/userinfo/"
