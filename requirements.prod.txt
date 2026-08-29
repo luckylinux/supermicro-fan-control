@@ -4,3 +4,4 @@ diskinfo
 psutil
 fastapi
 uvicorn
+asyncio

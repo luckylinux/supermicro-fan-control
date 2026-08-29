@@ -11,6 +11,10 @@ def deep_merge_lists(original, incoming):
 
     If length of incoming list is more that of original then extra values are appended.
     """
+
+    print(f"Original: {original}")
+    print(f"Original: {incoming}")
+
     common_length = min(len(original), len(incoming))
     for idx in range(common_length):
         if isinstance(original[idx], dict) and isinstance(incoming[idx], dict):

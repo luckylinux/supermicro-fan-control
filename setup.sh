@@ -15,12 +15,6 @@ python_version=$(python3 -c 'import sys; print(f"{sys.version_info[0]}.{sys.vers
 
 apt-get install "python${python_version}-venv" ipmitool
 
-# Create Include Path for amdsmi
-if [[ -d "/usr/libexec/amdsmi_cli" ]]
-then
-    echo "/usr/libexec/amdsmi_cli" > /opt/fan-controller/venv/lib64/python${python_version}/site-packages/amdsmi.pth
-fi
-
 # Create Folders
 mkdir -p "${SUPERMICRO_FAN_CONTROL_CONFIG_PATH}"
 mkdir -p /opt/supermicro-fan-control
@@ -109,36 +103,47 @@ python3 -m venv "/opt/supermicro-fan-control/venv"
 # Activate venv
 source "/opt/supermicro-fan-control/venv/bin/activate"
 
+# Create Include Path for amdsmi
+if [[ -d "/usr/libexec/amdsmi_cli" ]]
+then
+    echo "/usr/libexec/amdsmi_cli" > /opt/supermicro-fan-control/venv/lib/python${python_version}/site-packages/amdsmi_cli.pth
+fi
+
+if [[ -d "/usr/share/amd_smi" ]]
+then
+    echo "/usr/share/amd_smi" > /opt/supermicro-fan-control/venv/lib/python${python_version}/site-packages/amdsmi.pth
+fi
+
 # Enable Development Tools
 if [[ "${ENABLE_DEVEL}" == "yes" ]]
 then
-    pip install -r requirements.devel.txt
+    pip install -r "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/requirements.devel.txt"
 fi
 
 # If NOT in Manual Debug Mode
 if [[ "${DEBUG_MODE}" == "yes" ]]
 then
     # Install Requirements (Suppress Echo)
-    pip install -q -r requirements.prod.txt
+    pip install -q -r "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/requirements.prod.txt"
 else
     # Install Requirements (Echo)
-    pip install -r requirements.prod.txt
+    pip install -r "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/requirements.prod.txt"
 fi
 
 # Install App
-cp -r app /opt/supermicro-fan-control/
+cp -r "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/app" /opt/supermicro-fan-control/
 
 # Install Wrapper
-cp scripts/wrapper.sh /opt/supermicro-fan-control/wrapper.sh
+cp "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/scripts/wrapper.sh" /opt/supermicro-fan-control/wrapper.sh
 
 # Ensure Proper Permissions
-chmod 755 /opt/supermicro-fan-control/app/supermicro-fan-control.py
+chmod 755 /opt/supermicro-fan-control/app/app.py
 
 # Install Example Settings
-cp -r files/etc/supermicro-fan-control/* "${SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/"
+cp -r "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/files/etc/supermicro-fan-control/"* "${SUPERMICRO_FAN_CONTROL_CONFIG_PATH}/"
 
 # Install Systemd Service
-cp files/etc/systemd/system/supermicro-fan-control.service /etc/systemd/system/supermicro-fan-control.service
+cp "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/files/etc/systemd/system/supermicro-fan-control.service" /etc/systemd/system/supermicro-fan-control.service
 
 # Reload Systemd Daemon (at least to suppress warnings)
 systemctl daemon-reload

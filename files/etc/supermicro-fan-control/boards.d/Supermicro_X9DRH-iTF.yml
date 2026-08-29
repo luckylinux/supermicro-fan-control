@@ -1,4 +1,6 @@
 ipmi:
+    enabled: true
+
     fan_modes:
       standard:
         registers:

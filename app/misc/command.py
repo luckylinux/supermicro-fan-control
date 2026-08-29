@@ -1,13 +1,16 @@
 # Core Libraries
 # import os
-# import sys
+import sys
 
 # Subprocess Python Module
 # from subprocess import Popen , PIPE, run
 import subprocess
 
+# Traceback
+# import traceback
+
 # Import Custom Libraries
-from misc.logging import log
+from misc.logging import log_critical, log_error, log_warning, log_info, log_debug
 
 # Custom Wrapper Class to run System Commands
 class Command:
@@ -102,7 +105,7 @@ class Command:
             self.command_array = command
 
         # Echo Overall Command
-        log(f"Running Command (Complete Array): {self.command_array}" , level="DEBUG")
+        log_debug(f"Running Command (Complete Array): {self.command_array}")
 
         # Debugging
         # rows = len(new_command)
@@ -144,13 +147,13 @@ class Command:
                 self.command_string_overall = " | ".join([self.command_string_overall , self.command_string_pipes[p]])
 
         # Echo
-        log(f"Running Command (Complete String): {self.command_string_overall}" , level="DEBUG")
+        log_debug(f"Running Command (Complete String): {self.command_string_overall}")
 
         # Loop over each Pipe
         for p in range(0 , self.number_pipes , 1):
             # Echo
-            log(f"Processing Command for Pipe #{p} (Array): {self.command_array[p]}" , level="DEBUG" , indent=1)
-            log(f"Processing Command for Pipe #{p} (String): {self.command_string_pipes[p]}" , level="DEBUG" , indent=1)
+            log_debug(f"Processing Command for Pipe #{p} (Array): {self.command_array[p]}", indent=1)
+            log_debug(f"Processing Command for Pipe #{p} (String): {self.command_string_pipes[p]}", indent=1)
 
             # Save Input
             if p == 0:
@@ -160,7 +163,7 @@ class Command:
 
                 # Print Inputs (if Enabled)
                 if self.print_stdin or self.debug:
-                    log(f"Input Data: {self.stdin[p].decode()}" , level="DEBUG" , indent=2)
+                    log_debug(f"Input Data: {self.stdin[p].decode()}", indent=2)
                     #print(self.stdin[p].decode())
 
             # Use Pipe
@@ -182,12 +185,12 @@ class Command:
                 # Only show Message if value is non-empty
                 text_stderr = self.stderr[p].decode()
                 if text_stderr is not None and len(text_stderr) > 0:
-                    log(f"Error Data: {text_stderr}" , level="DEBUG" , indent=2)
+                    log_debug(f"Error Data: {text_stderr}", indent=2)
                     #print(self.stderr[p].decode())
 
             # Print Output (if Enabled)
             if self.print_stdout or self.debug:
-                log(f"Output Data: {self.stdout[p].decode()}" , level="DEBUG" , indent=2)
+                log_debug(f"Output Data: {self.stdout[p].decode()}", indent=2)
                 #print(self.stdout[p].decode())
 
             # If Return Code Check if enabled for any of the Pipes
@@ -199,8 +202,12 @@ class Command:
                     text_error = self.stderr[p].decode().rsplit("\n")
 
                     # Log Error and stderr Content
-                    log(f"Command exited with a non-Zero Error Code" , level="ERROR")
-                    log(f"{text_error}" , level="ERROR")
+                    log_error(f"Command exited with a non-Zero Error Code")
+                    log_error(f"{text_error}")
+
+                    import traceback
+                    traceback.print_stack(file=sys.stdout)
+                    sys.stdout.flush()
 
                     # Store this critical Failure in the Global Exitcode
                     self.exitcode = self.returncode[p]

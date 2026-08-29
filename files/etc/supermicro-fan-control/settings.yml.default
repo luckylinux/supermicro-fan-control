@@ -1,5 +1,5 @@
 general:
-    motherboard: "default"
+    motherboard: "Supermicro_default"
     update_interval: 30
     environment:
         LC_TIME: "en_DK.UTF-8"
@@ -7,7 +7,11 @@ general:
     debug: False
 
 log:
-    level: "INFO"
+    general:
+        level: "INFO"
+
+    diskinfo:
+        level: "INFO"
 
 beep:
     frequency: 2500
@@ -15,54 +19,119 @@ beep:
     delay: 1250
     repetitions: 5
 
-# Generic CPU
+ipmi:
+    # Default: IPMI is not available
+    enabled: false
+
+# CPU Temperature Sensor
 cpu:
-    driver: ipmitool
+    # Possible Drivers:
+    # - ipmi
+    # - coretemp
+    # - k10temp
+    driver: ipmi
+
     max_temp: 60
     min_temp: 50
     warning_temp: 80
     shutdown_temp: 95
 
-# Generic Drive
-# (!! will override more loose Requirements from hdd/sdd/nvme !!)
-drive:
-    max_temp: 60
-    min_temp: 40
-    warning_temp: 70
-    shutdown_temp: 80
-
-# HDD Drive
-hdd:
-    max_temp: 37
-    min_temp: 32
-    warning_temp: 50
-    shutdown_temp: 55
-
-# SSD Drive
-ssd:
+# PCH Temperature Sensor
+pch:
+    driver: ipmi
     max_temp: 60
     min_temp: 50
-    warning_temp: 65
-    shutdown_temp: 75
+    warning_temp: 80
+    shutdown_temp: 95
 
-# NVME Drive
-nvme:
+# RAM Temperatures Sensors
+ram:
+    driver: ipmi
     max_temp: 60
     min_temp: 50
-    warning_temp: 65
-    shutdown_temp: 75
+    warning_temp: 80
+    shutdown_temp: 95
 
-# Generic Fan
-fan:
+# Drives Temperatures Sensors
+drives:
+    # Generic Drive (this will override more loose Requirements from hdd/sdd/nvme !)
+    generic:
+        # "diskinfo"
+        driver: diskinfo
+        max_temp: 60
+        min_temp: 40
+        warning_temp: 70
+        shutdown_temp: 80
+
+    # HDD Drive
+    hdd:
+        # "diskinfo"
+        driver: diskinfo
+        max_temp: 37
+        min_temp: 32
+        warning_temp: 50
+        shutdown_temp: 55
+
+    # SSD Drive
+    ssd:
+        # "diskinfo"
+        driver: diskinfo
+        max_temp: 60
+        min_temp: 50
+        warning_temp: 65
+        shutdown_temp: 75
+
+    # NVME Drive
+    nvme:
+        # "diskinfo"
+        driver: diskinfo
+        max_temp: 60
+        min_temp: 50
+        warning_temp: 65
+        shutdown_temp: 75
+
+# GPUs Temperatures Sensors and optional extra Information
+gpu:
+    # AMD GPUs
+    amd:
+        # Driver Available: "amdgpu" or "psutil"
+        driver: amdgpu
+
+    # NVIDIA GPUs
+    nvidia:
+        # Driver Available: "nvidia"
+        driver: nvidia
+
+    # INTEL GPUs
+    intel:
+        # Driver Available: "intel"
+        driver: intel
+
+# Fan Controller
+fan_controller:
     initial_speed: 70
     max_speed: 100
     min_speed: 10
     inc_speed_step: 5
     dec_speed_step: 1
 
-# Web Server API
+# Fan Speed Measurements
+fan_readings:
+    driver: ipmi
+
+# PWM Interface
+pwm:
+    zones:
+        - name: pwm1
+          description: "CPU Zone"
+          driver: ipmi
+        - name: pwm2
+          description: "Peripherals Zone"
+          driver: ipmi
+
+# Web Server (API)
 web_server:
-    # Enable Web Server
+    # Web Server Enabled ?
     enabled: true
 
     # Bind Address / Port
