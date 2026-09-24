@@ -1,0 +1,15 @@
+# CPU Temperature Sensor
+cpu:
+    # Possible Options:
+    # - ipmi
+    # - coretemp
+    # - k10temp
+    driver: k10temp
+
+# Fan Speed Measurements
+fan_readings:
+    driver: psutil
+
+# PWM
+pwm:
+    driver: hwmon

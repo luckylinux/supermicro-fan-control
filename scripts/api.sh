@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Determine SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH if not set already
+relativepath="./" # Define relative path to go from this script to the root level of the tool
+if [[ ! -v SUPERMICRO_FAN_CONTROL_ROOT ]]; then scriptpath=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd ); SUPERMICRO_FAN_CONTROL_ROOT=$(realpath --canonicalize-missing $scriptpath/$relativepath); fi
+
+# Change to current Working Directory
+# cd "${SUPERMICRO_FAN_CONTROL_ROOT}" || exit
+
+# Active Virtual Environment
+# source venv/bin/activate
+
+# Change to "app" Working Directory
+# cd "${SUPERMICRO_FAN_CONTROL_ROOT}/app" || exit
+
+# Use CURL to Query API Endpoint
+curl -s "http://localhost:8080/$1" | jq -r
