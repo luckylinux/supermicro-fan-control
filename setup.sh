@@ -134,7 +134,11 @@ fi
 cp -r "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/app" /opt/supermicro-fan-control/
 
 # Install Wrapper
-cp "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/scripts/wrapper.sh" /opt/supermicro-fan-control/wrapper.sh
+cp "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/wrapper.sh" /opt/supermicro-fan-control/wrapper.sh
+
+# Copy Scripts
+mkdir -p /opt/supermicro-fan-control/scripts
+cp -ar "${SUPERMICRO_FAN_CONTROL_REPO_ROOT_PATH}/scripts/*" /opt/supermicro-fan-control/scripts/
 
 # Ensure Proper Permissions
 chmod 755 /opt/supermicro-fan-control/app/app.py
