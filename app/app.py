@@ -105,9 +105,9 @@ except Exception as e:
 # Define LOG_LEVEL
 # LOG_LEVEL = LogLevel.DEBUG
 
-# Initialize minimum Fan Speed to 50%
+# Initialize minimum Fan Speed to 30%
 # Will be overridden by fan_controller_config["initial_speed"] in case that Value is Higher than this
-default_initial_fan_speed = 50 # [%] Current Fan Speed
+default_initial_fan_speed = 30 # [%]
 
 class Data:
     # Declare Attributes
@@ -1902,7 +1902,7 @@ def start_controller():
 
     # Override the initial Setting for current_fan_speed in case fan_controller_config["min_speed"] is higher
     if "initial_speed" in fan_controller_config:
-        # Use the "initial_speed" Parameter or the Default Initial Value of current_fan_speed (50%), whichever is higher
+        # Use the "initial_speed" Parameter or default_initial_fan_speed, whichever is higher
         current_fan_speed = max(default_initial_fan_speed , fan_controller_config["initial_speed"])
     else:
         # Use the "min_speed" Parameter or the Default Initial Value of current_fan_speed (50%), whichever is higher
