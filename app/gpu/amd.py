@@ -56,6 +56,9 @@ class AMDGPU:
                       exc_info=True
                       )
 
+            log_info("Did you install the required Libraries ?")
+            log_info("Try: apt-get install amd-smi libamd-smi-dev libdrm-dev libpciaccess-dev")
+
         finally:
             # Init Devices
             self.init_devices()

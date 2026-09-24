@@ -604,12 +604,19 @@ class GlobalController:
 
                 if len(amd_gpu_temperatures_array_avg) > 0:
                     amd_gpu_temperature_avg = sum(amd_gpu_temperatures_array_avg) / len(amd_gpu_temperatures_array_avg)
+                else:
+                    amd_gpu_temperature_avg = 999
 
                 if len(amd_gpu_temperatures_array_max) > 0:
                     amd_gpu_temperature_max = max(amd_gpu_temperatures_array_max, default=999)
+                else:
+                    amd_gpu_temperature_max = 999
 
                 if len(amd_gpu_temperatures_array_min) > 0:
                     amd_gpu_temperature_min = min(amd_gpu_temperatures_array_min, default=999)
+                else:
+                    amd_gpu_temperature_min = 999
+
             except Exception as e:
                 log_error("Error occurred while retrieving GPU Temperatures",
                           exc_info=True
