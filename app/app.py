@@ -582,6 +582,9 @@ class GlobalController:
         nvidia_gpu_temperature_avg = None
 
         # Get AMD GPUs Temperatures
+        amd_gpu_temperature_avg = 999
+        amd_gpu_temperature_min = 999
+        amd_gpu_temperature_max = 999
         if amdgpu is not None:
         # if True is False:
             try:
